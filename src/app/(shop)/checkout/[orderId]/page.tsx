@@ -404,14 +404,16 @@ function PixView({ copyPaste, amountCents }: { copyPaste: string; amountCents: n
           <div className="text-[13px] text-ink-muted mb-3 leading-[1.5]">
             Escaneie o QR com o app do seu banco ou copie o código abaixo. A confirmação chega em segundos.
           </div>
-          <div className="flex items-center bg-background border border-border rounded-[6px] overflow-hidden">
-            <div className="flex-1 min-w-0 px-3 py-2 text-[11px] font-mono truncate">{copyPaste}</div>
+          <div className="flex flex-col bg-background border border-border rounded-[6px] overflow-hidden">
+            <div className="px-3 py-2 text-[11px] font-mono break-all max-h-24 overflow-y-auto leading-[1.4]">
+              {copyPaste}
+            </div>
             <button
               type="button"
               onClick={copy}
-              className="px-3.5 h-full bg-foreground text-background text-[11px] font-semibold uppercase tracking-wide"
+              className="w-full px-3.5 py-2.5 bg-foreground text-background text-[11px] font-semibold uppercase tracking-wide border-t border-border"
             >
-              {copied ? 'Copiado!' : 'Copiar'}
+              {copied ? 'Copiado!' : 'Copiar código'}
             </button>
           </div>
         </div>
