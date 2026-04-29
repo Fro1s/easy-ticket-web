@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
-import { Check, X, AlertTriangle, WifiOff } from 'lucide-react';
+import { Check, X, AlertTriangle, WifiOff, Camera } from 'lucide-react';
 import { RoleGate } from '@/components/role-gate';
 import { useProducerControllerGetEvent } from '@/generated/api';
 import { customInstance } from '@/lib/api';
@@ -120,7 +120,6 @@ function FeedbackPanel({ feedback }: { feedback: FeedbackKind }) {
     );
   }
 
-  // idle
   return (
     <div className="flex flex-col items-center gap-3 text-muted-foreground py-6">
       <div className="w-3 h-3 rounded-full bg-accent animate-pulse" />
@@ -129,16 +128,174 @@ function FeedbackPanel({ feedback }: { feedback: FeedbackKind }) {
   );
 }
 
+interface ScannerProps {
+  onScan: (token: string) => void;
+}
+
+/**
+ * Self-contained QR scanner. Mounts only after the role gate validates the user,
+ * which guarantees the <video> element is in the DOM when init() runs.
+ * Requires an explicit user click to start the camera — Safari/iOS only attaches
+ * camera streams reliably in response to a user gesture.
+ */
+function Scanner({ onScan }: ScannerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const readerRef = useRef<{ reset: () => void } | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [started, setStarted] = useState(false);
+  const [starting, setStarting] = useState(false);
+
+  const start = useCallback(async () => {
+    if (!videoRef.current) {
+      setCameraError('Vídeo não inicializado. Recarregue a página.');
+      return;
+    }
+    if (
+      typeof navigator === 'undefined' ||
+      !navigator.mediaDevices?.getUserMedia
+    ) {
+      setCameraError(
+        'Câmera indisponível neste navegador. Use Chrome ou Safari recente, e abra pelo HTTPS.',
+      );
+      return;
+    }
+
+    setStarting(true);
+    setCameraError(null);
+
+    try {
+      const { BrowserMultiFormatReader } = await import('@zxing/library');
+      const reader = new BrowserMultiFormatReader();
+      readerRef.current = { reset: () => reader.reset() };
+
+      const constraints: MediaStreamConstraints = {
+        audio: false,
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      };
+
+      await reader.decodeFromConstraints(
+        constraints,
+        videoRef.current,
+        (result) => {
+          if (result) onScan(result.getText());
+        },
+      );
+      setStarted(true);
+    } catch (e) {
+      console.error('[portaria] camera init error', e);
+      const err = e as { name?: string; message?: string };
+      if (err?.name === 'NotAllowedError') {
+        setCameraError(
+          'Permissão da câmera negada. Habilite nas configurações do navegador e recarregue a página.',
+        );
+      } else if (err?.name === 'NotFoundError') {
+        setCameraError('Nenhuma câmera encontrada neste dispositivo.');
+      } else if (err?.name === 'NotReadableError') {
+        setCameraError(
+          'Câmera em uso por outro app. Feche os outros apps e tente de novo.',
+        );
+      } else if (err?.name === 'OverconstrainedError') {
+        // Retry without facingMode constraint — some devices (front-only laptops) reject it.
+        try {
+          const { BrowserMultiFormatReader } = await import('@zxing/library');
+          const reader = new BrowserMultiFormatReader();
+          readerRef.current = { reset: () => reader.reset() };
+          await reader.decodeFromConstraints(
+            { audio: false, video: true },
+            videoRef.current!,
+            (result) => {
+              if (result) onScan(result.getText());
+            },
+          );
+          setStarted(true);
+        } catch (retryErr) {
+          setCameraError(
+            (retryErr as Error)?.message ?? 'Falha ao iniciar a câmera.',
+          );
+        }
+      } else {
+        setCameraError(err?.message ?? 'Falha ao iniciar a câmera.');
+      }
+    } finally {
+      setStarting(false);
+    }
+  }, [onScan]);
+
+  useEffect(() => {
+    return () => {
+      readerRef.current?.reset();
+    };
+  }, []);
+
+  return (
+    <div className="relative w-full bg-black overflow-hidden" style={{ aspectRatio: '1/1' }}>
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+
+      {cameraError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 p-6 text-center gap-3">
+          <AlertTriangle className="w-8 h-8 text-yellow-400" />
+          <p className="text-sm text-yellow-200 max-w-xs">{cameraError}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setCameraError(null);
+              void start();
+            }}
+            className="font-mono text-[11px] uppercase tracking-widest px-4 py-2 border border-accent text-accent rounded-[4px]"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {!started && !cameraError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 p-6 text-center gap-4">
+          <Camera className="w-10 h-10 text-accent" />
+          <p className="text-sm text-foreground max-w-xs">
+            Toque para liberar o uso da câmera traseira.
+          </p>
+          <button
+            type="button"
+            onClick={() => void start()}
+            disabled={starting}
+            className="font-mono text-xs uppercase tracking-widest px-6 py-3 bg-accent text-background rounded-[4px] disabled:opacity-50"
+          >
+            {starting ? 'Abrindo…' : 'Iniciar câmera'}
+          </button>
+        </div>
+      )}
+
+      {started && !cameraError && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="relative w-56 h-56">
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-accent" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-[3px] border-r-[3px] border-accent" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-[3px] border-l-[3px] border-accent" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-accent" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PortariaPage() {
   const { slug } = useParams<{ slug: string }>();
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<{ reset: () => void } | null>(null);
   const lastScannedRef = useRef<{ token: string; at: number } | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const consecutiveFailRef = useRef(0);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Keep the latest mutateAsync in a ref so the scanner callback always uses fresh version
   const mutateRef = useRef<typeof validateMutation.mutateAsync | null>(null);
 
   const [feedback, setFeedback] = useState<FeedbackKind>({ kind: 'idle' });
@@ -162,7 +319,6 @@ export default function PortariaPage() {
       ),
   });
 
-  // Keep ref in sync
   useEffect(() => {
     mutateRef.current = validateMutation.mutateAsync;
   });
@@ -252,73 +408,11 @@ export default function PortariaPage() {
     scheduleAutoDismiss();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [cameraError, setCameraError] = useState<string | null>(null);
-
-  // Initialize camera scanner
   useEffect(() => {
-    let active = true;
-
-    async function init() {
-      if (!videoRef.current) return;
-      try {
-        if (
-          typeof navigator === 'undefined' ||
-          !navigator.mediaDevices?.getUserMedia
-        ) {
-          setCameraError(
-            'Câmera indisponível neste navegador. Use Chrome ou Safari recente, e abra pelo HTTPS.',
-          );
-          return;
-        }
-
-        const { BrowserMultiFormatReader } = await import('@zxing/library');
-        const reader = new BrowserMultiFormatReader();
-        readerRef.current = { reset: () => reader.reset() };
-
-        const constraints: MediaStreamConstraints = {
-          audio: false,
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-        };
-
-        await reader.decodeFromConstraints(
-          constraints,
-          videoRef.current,
-          (result) => {
-            if (result && active) void handleScan(result.getText());
-          },
-        );
-        setCameraError(null);
-      } catch (e) {
-        console.error('[portaria] camera init error', e);
-        const err = e as { name?: string; message?: string };
-        if (err?.name === 'NotAllowedError') {
-          setCameraError(
-            'Permissão da câmera negada. Habilite nas configurações do navegador e recarregue a página.',
-          );
-        } else if (err?.name === 'NotFoundError') {
-          setCameraError('Nenhuma câmera encontrada neste dispositivo.');
-        } else if (err?.name === 'NotReadableError') {
-          setCameraError(
-            'Câmera em uso por outro app. Feche os outros apps e tente de novo.',
-          );
-        } else {
-          setCameraError(err?.message ?? 'Falha ao iniciar a câmera.');
-        }
-      }
-    }
-
-    void init();
-
     return () => {
-      active = false;
-      readerRef.current?.reset();
       if (dismissTimerRef.current) clearTimeout(dismissTimerRef.current);
     };
-  }, [handleScan]);
+  }, []);
 
   return (
     <RoleGate allow={['PRODUCER', 'ADMIN']}>
@@ -327,7 +421,6 @@ export default function PortariaPage() {
           className="min-h-screen bg-background flex flex-col"
           onClick={primeAudio}
         >
-          {/* Top bar */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
             <Link
               href={`/painel-produtor/eventos/${slug}`}
@@ -347,42 +440,8 @@ export default function PortariaPage() {
             </div>
           </div>
 
-          {/* Camera viewport */}
-          <div className="relative w-full bg-black overflow-hidden" style={{ aspectRatio: '1/1' }}>
-            <video
-              ref={videoRef}
-              autoPlay
-              muted
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            {cameraError && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 p-6 text-center gap-3">
-                <AlertTriangle className="w-8 h-8 text-yellow-400" />
-                <p className="text-sm text-yellow-200 max-w-xs">{cameraError}</p>
-                <button
-                  type="button"
-                  onClick={() => location.reload()}
-                  className="font-mono text-[11px] uppercase tracking-widest px-4 py-2 border border-accent text-accent rounded-[4px]"
-                >
-                  Tentar novamente
-                </button>
-              </div>
-            )}
-            {/* Scan guide overlay */}
-            {!cameraError && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="relative w-56 h-56">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-accent" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-[3px] border-r-[3px] border-accent" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-[3px] border-l-[3px] border-accent" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-accent" />
-                </div>
-              </div>
-            )}
-          </div>
+          <Scanner onScan={handleScan} />
 
-          {/* Feedback panel */}
           <div className="flex-1 flex flex-col p-4 w-full max-w-sm mx-auto">
             <FeedbackPanel feedback={feedback} />
             <p className="font-mono text-xs text-muted-foreground/50 text-center mt-auto pt-6 uppercase tracking-widest">
