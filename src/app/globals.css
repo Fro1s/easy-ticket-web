@@ -1,0 +1,112 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Easy Ticket — Design Tokens
+ * Direction A: "Neon Noite" (dark, DEFAULT)
+ * Direction B: "Papel & Festa" (light, opt-in via .light)
+ */
+
+@theme inline {
+  /* Colors */
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-card: var(--bg-card);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--bg-card);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-ink);
+  --color-secondary: var(--bg-elevated);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--bg-elevated);
+  --color-muted-foreground: var(--ink-muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-ink);
+  --color-destructive: var(--accent-2);
+  --color-border: var(--border-color);
+  --color-input: var(--bg-input);
+  --color-ring: var(--accent);
+
+  /* Custom colors */
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-dim: var(--ink-dim);
+  --color-vermillion: var(--accent);
+  --color-forest: var(--success);
+  --color-ticket: var(--ticket-yellow);
+  --color-paper: var(--bg);
+  --color-elevated: var(--bg-elevated);
+  --color-accent-2: var(--accent-2);
+  --color-accent-3: var(--accent-3);
+
+  /* Fonts — Neon Noite uses Syne as display */
+  --font-display: var(--font-syne), var(--font-inter-tight), system-ui, sans-serif;
+  --font-body: var(--font-inter-tight), -apple-system, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-display-alt: var(--font-fraunces), "Times New Roman", serif;
+  --font-sans: var(--font-inter-tight), -apple-system, system-ui, sans-serif;
+
+  /* Radius — tight, not rounded-pill */
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+}
+
+/* Direction A — Neon Noite (default) */
+:root,
+.dark {
+  --bg: #0A0A0F;
+  --bg-elevated: #12121A;
+  --bg-card: #18181F;
+  --bg-input: #1E1E28;
+  --ink: #F5F5F7;
+  --ink-muted: rgba(245, 245, 247, 0.62);
+  --ink-dim: rgba(245, 245, 247, 0.38);
+  --accent: #D1FF4D;         /* acid lime */
+  --accent-ink: #0A0A0F;     /* text on accent */
+  --accent-2: #FF3D8A;       /* hot pink */
+  --accent-3: #7B61FF;       /* purple */
+  --success: #00E89C;
+  --ticket-yellow: #FFD84D;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+}
+
+/* Direction B — Papel & Festa (opt-in) */
+.light {
+  --bg: #F4EFE6;
+  --bg-elevated: #FBF7F0;
+  --bg-card: #FFFFFF;
+  --bg-input: #FFFFFF;
+  --ink: #1A1410;
+  --ink-muted: rgba(26, 20, 16, 0.64);
+  --ink-dim: rgba(26, 20, 16, 0.42);
+  --accent: #FF4D1C;
+  --accent-ink: #FFFFFF;
+  --accent-2: #1A1410;
+  --accent-3: #2F5D3F;
+  --success: #2F5D3F;
+  --ticket-yellow: #FFD84D;
+  --border-color: rgba(30, 24, 18, 0.12);
+  --border-strong: rgba(30, 24, 18, 0.24);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+
+  .light body {
+    background-image: radial-gradient(rgba(26, 20, 16, 0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+}
