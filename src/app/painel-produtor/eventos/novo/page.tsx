@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -52,6 +52,7 @@ type SectorRow = {
   colorHex: string;
   priceCents: number;
   capacity: number;
+  producerOnly: boolean;
 };
 
 const CATEGORIES = Object.values(CreateEventDtoCategory);
@@ -182,7 +183,7 @@ function NewVenueDialog({
       const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
       const data: ViaCepResponse = await res.json();
       if (data.erro) {
-        setCepError('CEP não encontrado.');
+        setCepError('CEP nÃ£o encontrado.');
         return;
       }
       if (data.logradouro) setStreet(data.logradouro);
@@ -271,7 +272,7 @@ function NewVenueDialog({
             <div className="space-y-2">
               <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Logradouro / Bairro</Label>
               <div className="text-sm text-ink-muted">
-                {street}{neighborhood ? ` · ${neighborhood}` : ''}
+                {street}{neighborhood ? ` Â· ${neighborhood}` : ''}
               </div>
             </div>
           )}
@@ -279,7 +280,7 @@ function NewVenueDialog({
           <div className="grid grid-cols-[1fr_120px] gap-3">
             <div className="space-y-2">
               <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Cidade *</Label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="São Paulo" required />
+              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="SÃ£o Paulo" required />
             </div>
             <div className="space-y-2">
               <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">UF *</Label>
@@ -312,7 +313,7 @@ function NewVenueDialog({
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button type="submit" variant="accent" disabled={createMut.isPending}>
-              {createMut.isPending ? 'Criando…' : 'Criar local'}
+              {createMut.isPending ? 'Criandoâ€¦' : 'Criar local'}
             </Button>
           </DialogFooter>
         </form>
@@ -349,24 +350,30 @@ export default function NovoEventoPage() {
   const [doorsTime, setDoorsTime] = useState('19:00');
 
   const [sectors, setSectors] = useState<SectorRow[]>([
-    { name: 'Pista', colorHex: '#D1FF4D', priceCents: 5000, capacity: 100 },
+    {
+      name: 'Pista',
+      colorHex: '#D1FF4D',
+      priceCents: 5000,
+      capacity: 100,
+      producerOnly: false,
+    },
   ]);
 
   const venues = venuesQ.data?.data ?? [];
 
   const validation = useMemo(() => {
     const errs: string[] = [];
-    if (!title.trim()) errs.push('Informe o título.');
+    if (!title.trim()) errs.push('Informe o tÃ­tulo.');
     if (!artist.trim()) errs.push('Informe o artista.');
     if (!venueId) errs.push('Escolha o local.');
     if (!posterUrl.trim()) errs.push('Informe a URL do poster.');
-    if (!description.trim()) errs.push('Informe a descrição.');
+    if (!description.trim()) errs.push('Informe a descriÃ§Ã£o.');
     const startsAt = combineDateTime(startsDate, startsTime);
     const doorsAt = combineDateTime(doorsDate, doorsTime);
-    if (!startsAt) errs.push('Informe data e hora de início.');
+    if (!startsAt) errs.push('Informe data e hora de inÃ­cio.');
     if (!doorsAt) errs.push('Informe data e hora de abertura.');
     if (startsAt && doorsAt && new Date(doorsAt) > new Date(startsAt)) {
-      errs.push('Abertura precisa ser antes do início.');
+      errs.push('Abertura precisa ser antes do inÃ­cio.');
     }
     const feeNum = Number(feePercent);
     if (Number.isNaN(feeNum) || feeNum < 0 || feeNum > 50) {
@@ -374,12 +381,12 @@ export default function NovoEventoPage() {
     }
     if (provider === CreateEventDtoPaymentProvider.MANUAL_PIX) {
       if (!pixKey.trim()) errs.push('Informe a chave PIX.');
-      if (!pixHolderName.trim()) errs.push('Informe o nome do beneficiário.');
+      if (!pixHolderName.trim()) errs.push('Informe o nome do beneficiÃ¡rio.');
     }
     sectors.forEach((s, i) => {
-      if (!s.name.trim()) errs.push(`Setor ${i + 1}: nome obrigatório.`);
-      if (!(s.priceCents > 0)) errs.push(`Setor ${i + 1}: preço maior que zero.`);
-      if (!(s.capacity >= 1)) errs.push(`Setor ${i + 1}: capacidade ≥ 1.`);
+      if (!s.name.trim()) errs.push(`Setor ${i + 1}: nome obrigatÃ³rio.`);
+      if (!(s.priceCents >= 0)) errs.push(`Setor ${i + 1}: preço inválido.`);
+      if (!(s.capacity >= 1)) errs.push(`Setor ${i + 1}: capacidade â‰¥ 1.`);
     });
     return { errs, startsAt, doorsAt };
   }, [
@@ -395,7 +402,7 @@ export default function NovoEventoPage() {
     ev.preventDefault();
     setError(null);
     if (validation.errs.length) {
-      setError(validation.errs.join(' · '));
+      setError(validation.errs.join(' Â· '));
       return;
     }
     const dto: CreateEventDto = {
@@ -437,11 +444,11 @@ export default function NovoEventoPage() {
                 href="/painel-produtor"
                 className="inline-block mb-6 font-mono text-[11px] tracking-[2px] uppercase text-ink-dim hover:text-foreground"
               >
-                ← Voltar
+                â† Voltar
               </Link>
 
               <div className="font-mono text-[11px] tracking-[2px] uppercase text-accent mb-3">
-                NOVO EVENTO · RASCUNHO
+                NOVO EVENTO Â· RASCUNHO
               </div>
             <h1 className="font-display text-[44px] font-extrabold leading-[0.95] tracking-[-2px] mb-10">
               Crie seu evento<span className="text-accent">.</span>
@@ -449,7 +456,7 @@ export default function NovoEventoPage() {
 
             <form onSubmit={onSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Título *</Label>
+                <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">TÃ­tulo *</Label>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
               </div>
 
@@ -475,7 +482,7 @@ export default function NovoEventoPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Classificação (idade) *</Label>
+                  <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">ClassificaÃ§Ã£o (idade) *</Label>
                   <Input
                     type="number"
                     min={0}
@@ -489,7 +496,7 @@ export default function NovoEventoPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DatePickerField
-                  label="Início"
+                  label="InÃ­cio"
                   date={startsDate}
                   setDate={setStartsDate}
                   time={startsTime}
@@ -497,7 +504,7 @@ export default function NovoEventoPage() {
                   required
                 />
                 <DatePickerField
-                  label="Abertura dos portões"
+                  label="Abertura dos portÃµes"
                   date={doorsDate}
                   setDate={setDoorsDate}
                   time={doorsTime}
@@ -521,16 +528,16 @@ export default function NovoEventoPage() {
                   onValueChange={(v) => v && setVenueId(v)}
                   items={venues.map((v) => ({
                     value: v.id,
-                    label: `${v.name} — ${v.city}/${v.state} (cap. ${v.capacity.toLocaleString('pt-BR')})`,
+                    label: `${v.name} â€” ${v.city}/${v.state} (cap. ${v.capacity.toLocaleString('pt-BR')})`,
                   }))}
                 >
                   <SelectTrigger className="h-12">
-                    <SelectValue placeholder="— escolha um local —" />
+                    <SelectValue placeholder="â€” escolha um local â€”" />
                   </SelectTrigger>
                   <SelectContent>
                     {venues.map((v) => (
                       <SelectItem key={v.id} value={v.id}>
-                        {v.name} — {v.city}/{v.state} (cap. {v.capacity.toLocaleString('pt-BR')})
+                        {v.name} â€” {v.city}/{v.state} (cap. {v.capacity.toLocaleString('pt-BR')})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -542,14 +549,14 @@ export default function NovoEventoPage() {
                 <Input
                   value={posterUrl}
                   onChange={(e) => setPosterUrl(e.target.value)}
-                  placeholder="https://… ou linear-gradient(…)"
+                  placeholder="https://â€¦ ou linear-gradient(â€¦)"
                   maxLength={500}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Descrição *</Label>
+                <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">DescriÃ§Ã£o *</Label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -617,11 +624,11 @@ export default function NovoEventoPage() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Nome do beneficiário *</Label>
+                      <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Nome do beneficiÃ¡rio *</Label>
                       <Input
                         value={pixHolderName}
                         onChange={(e) => setPixHolderName(e.target.value)}
-                        placeholder="Como aparece no QR Code estático"
+                        placeholder="Como aparece no QR Code estÃ¡tico"
                         required
                       />
                     </div>
@@ -668,6 +675,7 @@ export default function NovoEventoPage() {
                           colorHex: '#D1FF4D',
                           priceCents: 0,
                           capacity: 0,
+                          producerOnly: false,
                         },
                       ])
                     }
@@ -703,7 +711,7 @@ export default function NovoEventoPage() {
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">Preço (R$)</Label>
+                          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">PreÃ§o (R$)</Label>
                           <Input
                             type="number"
                             min={0}
@@ -735,12 +743,26 @@ export default function NovoEventoPage() {
                           className="h-12 grid place-items-center text-red-400 hover:text-red-300 disabled:opacity-30 text-xl"
                           aria-label="Remover setor"
                         >
-                          ×
+                          Ã—
                         </button>
                       </div>
+                      <label className="mt-3 flex items-start gap-2 rounded-[4px] border border-border/40 bg-ink-deep/40 px-3 py-2 text-xs text-ink-muted">
+                        <input
+                          type="checkbox"
+                          checked={s.producerOnly}
+                          onChange={(e) =>
+                            updateSector(i, { producerOnly: e.target.checked })
+                          }
+                          className="mt-0.5 h-4 w-4 accent-accent"
+                        />
+                        <span>
+                          Lote exclusivo para produtor/admin. Não aparece na venda
+                          pública.
+                        </span>
+                      </label>
                       {s.priceCents > 0 && s.capacity > 0 && (
                         <div className="text-[11px] text-ink-dim mt-2 font-mono">
-                          {s.capacity.toLocaleString('pt-BR')} ingressos × {brlFromCents(s.priceCents)} = potencial {brlFromCents(s.priceCents * s.capacity)}
+                          {s.capacity.toLocaleString('pt-BR')} ingressos Ã— {brlFromCents(s.priceCents)} = potencial {brlFromCents(s.priceCents * s.capacity)}
                         </div>
                       )}
                     </div>
@@ -761,7 +783,7 @@ export default function NovoEventoPage() {
                   size="lg"
                   disabled={!canSubmit}
                 >
-                  {create.isPending ? 'Criando…' : 'Criar como rascunho'}
+                  {create.isPending ? 'Criandoâ€¦' : 'Criar como rascunho'}
                 </Button>
                 <Link href="/painel-produtor">
                   <Button type="button" variant="outline" size="lg">
@@ -777,3 +799,5 @@ export default function NovoEventoPage() {
     </RoleGate>
   );
 }
+
+

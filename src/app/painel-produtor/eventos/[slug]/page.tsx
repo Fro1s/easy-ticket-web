@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Camera, Check, Mail, Send, Pencil, Copy } from 'lucide-react';
+import { Camera, Check, Mail, Pencil, Copy, Plus, Trash2, EyeOff, XCircle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { RoleGate } from '@/components/role-gate';
 import { ProducerHeader } from '@/components/producer-header';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ import {
   useProducerControllerSell,
 } from '@/generated/api';
 import type { ProducerEventDetail, SellByEmailResponse } from '@/generated/api';
+import { customInstance } from '@/lib/api';
 import {
   ORDER_STATUS_PT,
   EVENT_STATUS_PT,
@@ -63,6 +65,85 @@ const FILTER_LABELS: Record<FilterValue, string> = {
 const fmtBRL = (c: number) =>
   (c / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtDT = (s: string) => new Date(s).toLocaleString('pt-BR');
+
+type BatchResponse = {
+  id: string;
+  sectorId: string;
+  name: string;
+  priceCents: number;
+  capacity: number;
+  sold: number;
+  reserved: number;
+  sortOrder: number;
+  producerOnly: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+};
+
+type BatchListResponse = { items: BatchResponse[] };
+
+type BatchPayload = {
+  name: string;
+  priceCents: number;
+  capacity: number;
+  sortOrder: number;
+  producerOnly?: boolean;
+  startsAt?: string | null;
+  endsAt?: string | null;
+};
+
+type CancelOrderResponse = {
+  orderId: string;
+  status: string;
+  releasedQty: number;
+};
+
+async function listBatches(eventId: string, sectorId: string) {
+  return customInstance<{ data: BatchListResponse }>(
+    `/api/v1/producer/events/${eventId}/sectors/${sectorId}/batches`,
+  );
+}
+
+async function createBatch(eventId: string, sectorId: string, data: BatchPayload) {
+  return customInstance<{ data: BatchResponse }>(
+    `/api/v1/producer/events/${eventId}/sectors/${sectorId}/batches`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+async function updateBatch(
+  eventId: string,
+  sectorId: string,
+  batchId: string,
+  data: Partial<BatchPayload>,
+) {
+  return customInstance<{ data: BatchResponse }>(
+    `/api/v1/producer/events/${eventId}/sectors/${sectorId}/batches/${batchId}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+async function removeBatch(eventId: string, sectorId: string, batchId: string) {
+  return customInstance<void>(
+    `/api/v1/producer/events/${eventId}/sectors/${sectorId}/batches/${batchId}`,
+    { method: 'DELETE' },
+  );
+}
+
+async function cancelOrder(orderId: string) {
+  return customInstance<{ data: CancelOrderResponse }>(
+    `/api/v1/producer/orders/${orderId}/cancel`,
+    { method: 'POST' },
+  );
+}
 
 function extractErr(e: unknown): string {
   const m = (e as { response?: { data?: { message?: unknown } } })?.response
@@ -155,6 +236,223 @@ function ConfirmManualPaymentDialog({
   );
 }
 
+function BatchManager({
+  event,
+  onChanged,
+}: {
+  event: ProducerEventDetail;
+  onChanged: () => void;
+}) {
+  const sectors = event.sectors ?? [];
+  const [sectorId, setSectorId] = useState(sectors[0]?.id ?? '');
+  const [name, setName] = useState('Voluntários');
+  const [price, setPrice] = useState('0');
+  const [capacity, setCapacity] = useState('50');
+  const [sortOrder, setSortOrder] = useState('0');
+  const [producerOnly, setProducerOnly] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  const batches = useQuery({
+    queryKey: ['producer-batches', event.id, sectorId],
+    queryFn: () => listBatches(event.id, sectorId),
+    enabled: !!event.id && !!sectorId,
+  });
+
+  const createMut = useMutation({
+    mutationFn: (payload: BatchPayload) => createBatch(event.id, sectorId, payload),
+    onSuccess: () => {
+      batches.refetch();
+      onChanged();
+      setName('Voluntários');
+      setPrice('0');
+      setCapacity('50');
+      setSortOrder('0');
+      setProducerOnly(true);
+    },
+  });
+
+  const updateMut = useMutation({
+    mutationFn: (input: { batchId: string; payload: Partial<BatchPayload> }) =>
+      updateBatch(event.id, sectorId, input.batchId, input.payload),
+    onSuccess: () => {
+      batches.refetch();
+      onChanged();
+    },
+  });
+
+  const removeMut = useMutation({
+    mutationFn: (batchId: string) => removeBatch(event.id, sectorId, batchId),
+    onSuccess: () => {
+      batches.refetch();
+      onChanged();
+    },
+  });
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    const priceNumber = Number(price.replace(',', '.'));
+    const capacityNumber = Number(capacity);
+    const sortNumber = Number(sortOrder);
+    if (!name.trim() || !Number.isFinite(priceNumber) || capacityNumber < 1) {
+      setErr('Preencha nome, preço e capacidade.');
+      return;
+    }
+    try {
+      await createMut.mutateAsync({
+        name: name.trim(),
+        priceCents: Math.round(priceNumber * 100),
+        capacity: capacityNumber,
+        sortOrder: Number.isFinite(sortNumber) ? sortNumber : 0,
+        producerOnly,
+      });
+    } catch (e) {
+      setErr(extractErr(e));
+    }
+  }
+
+  const items = batches.data?.data.items ?? [];
+
+  return (
+    <section className="mb-10 border border-border/50 rounded-[6px] bg-card/30 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 className="font-display text-2xl font-bold">Lotes</h2>
+          <p className="text-xs text-ink-dim">
+            Use lote exclusivo para voluntários, cortesia ou venda interna.
+          </p>
+        </div>
+        <Select
+          value={sectorId}
+          onValueChange={(v) => v && setSectorId(v)}
+          items={sectors.map((s) => ({ value: s.id, label: s.name }))}
+        >
+          <SelectTrigger className="w-[220px]">
+            <SelectValue placeholder="Setor" />
+          </SelectTrigger>
+          <SelectContent>
+            {sectors.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <form
+        onSubmit={submit}
+        className="grid grid-cols-1 md:grid-cols-[1fr_120px_110px_90px_auto] gap-2 items-end mb-4"
+      >
+        <div className="space-y-1.5">
+          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
+            Nome
+          </Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
+            Preço
+          </Label>
+          <Input value={price} onChange={(e) => setPrice(e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
+            Cap.
+          </Label>
+          <Input
+            type="number"
+            min={1}
+            value={capacity}
+            onChange={(e) => setCapacity(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
+            Ordem
+          </Label>
+          <Input
+            type="number"
+            min={0}
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+          />
+        </div>
+        <Button type="submit" variant="accent" disabled={createMut.isPending || !sectorId}>
+          <Plus className="w-4 h-4" />
+          Criar
+        </Button>
+        <label className="md:col-span-5 flex items-center gap-2 text-xs text-ink-muted">
+          <input
+            type="checkbox"
+            checked={producerOnly}
+            onChange={(e) => setProducerOnly(e.target.checked)}
+            className="h-4 w-4 accent-accent"
+          />
+          Exclusivo para produtor/admin. Não aparece no checkout público.
+        </label>
+      </form>
+
+      {err && <div className="text-red-400 text-sm mb-3">{err}</div>}
+
+      <div className="space-y-2">
+        {items.map((batch) => (
+          <div
+            key={batch.id}
+            className="grid grid-cols-1 md:grid-cols-[1fr_120px_120px_120px_auto] gap-3 items-center rounded-[4px] border border-border/40 bg-ink-deep/40 p-3"
+          >
+            <div>
+              <div className="font-medium flex items-center gap-2">
+                {batch.name}
+                {batch.producerOnly && (
+                  <span className="inline-flex items-center gap-1 rounded-[3px] bg-accent/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[1.5px] text-accent">
+                    <EyeOff className="h-3 w-3" />
+                    Interno
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-ink-dim">
+                ordem {batch.sortOrder} · {batch.sold} vendidos · {batch.reserved} reservados
+              </div>
+            </div>
+            <div className="font-mono text-sm">{fmtBRL(batch.priceCents)}</div>
+            <div className="text-sm">{batch.capacity} ingressos</div>
+            <label className="flex items-center gap-2 text-xs text-ink-muted">
+              <input
+                type="checkbox"
+                checked={batch.producerOnly}
+                onChange={(e) =>
+                  updateMut.mutate({
+                    batchId: batch.id,
+                    payload: { producerOnly: e.target.checked },
+                  })
+                }
+                className="h-4 w-4 accent-accent"
+              />
+              Exclusivo
+            </label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={batch.sold > 0 || removeMut.isPending}
+              onClick={() => removeMut.mutate(batch.id)}
+              className="text-red-300 hover:text-red-200"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        ))}
+        {!items.length && (
+          <div className="rounded-[4px] border border-dashed border-border/50 p-5 text-center text-sm text-ink-dim">
+            Nenhum lote neste setor.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function EventoDetailPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
@@ -177,6 +475,13 @@ export default function EventoDetailPage() {
   );
   const publish = useProducerControllerPublishEvent();
   const confirm = useProducerControllerConfirmManualPayment();
+  const cancelMut = useMutation({
+    mutationFn: cancelOrder,
+    onSuccess: () => {
+      orders.refetch();
+      ev.refetch();
+    },
+  });
 
   const detail = ev.data?.data;
   const list = orders.data?.data;
@@ -201,6 +506,16 @@ export default function EventoDetailPage() {
       });
       orders.refetch();
       ev.refetch();
+    } catch (e) {
+      setErr(extractErr(e));
+      orders.refetch();
+    }
+  }
+
+  async function handleCancel(orderId: string) {
+    setErr(null);
+    try {
+      await cancelMut.mutateAsync(orderId);
     } catch (e) {
       setErr(extractErr(e));
       orders.refetch();
@@ -300,6 +615,13 @@ export default function EventoDetailPage() {
                   </div>
                 </div>
 
+                <BatchManager
+                  event={detail}
+                  onChanged={() => {
+                    ev.refetch();
+                  }}
+                />
+
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <h2 className="font-display text-2xl font-bold">Pedidos</h2>
                   <div className="flex gap-2 flex-wrap">
@@ -380,7 +702,7 @@ export default function EventoDetailPage() {
                             {o.paymentMethod ? tr(PAYMENT_METHOD_PT, o.paymentMethod) : 'sem método'}
                           </div>
                         </div>
-                        <div>
+                        <div className="flex flex-wrap gap-2 justify-start md:justify-end">
                           {o.isManualPending && (
                             <Button
                               onClick={() => setConfirmOrderId(o.id)}
@@ -389,6 +711,18 @@ export default function EventoDetailPage() {
                             >
                               <Check className="w-4 h-4" />
                               Marcar pago
+                            </Button>
+                          )}
+                          {o.status === 'PENDING' && (
+                            <Button
+                              onClick={() => handleCancel(o.id)}
+                              variant="outline"
+                              size="sm"
+                              disabled={cancelMut.isPending}
+                              className="border-red-400/50 text-red-300 hover:text-red-200"
+                            >
+                              <XCircle className="w-4 h-4" />
+                              Cancelar
                             </Button>
                           )}
                         </div>
@@ -428,22 +762,32 @@ function SellByEmailDialog({
   const [email, setEmail] = useState('');
   const [buyerName, setBuyerName] = useState('');
   const [sectorId, setSectorId] = useState(firstSectorId);
+  const [batchId, setBatchId] = useState('');
   const [qty, setQty] = useState(1);
   const [markPaid, setMarkPaid] = useState(true);
   const [result, setResult] = useState<SellByEmailResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   const sector = sectors.find((s) => s.id === sectorId);
-  const total = sector ? (sector.priceCents * qty) / 100 : 0;
-  const remaining = sector
-    ? sector.capacity - sector.sold - sector.reserved
-    : 0;
+  const batches = useQuery({
+    queryKey: ['producer-batches-sell', event.id, sectorId],
+    queryFn: () => listBatches(event.id, sectorId),
+    enabled: !!event.id && !!sectorId,
+  });
+  const batchItems = batches.data?.data.items ?? [];
+  const selectedBatch = batchItems.find((b) => b.id === batchId) ?? batchItems[0];
+  const total = selectedBatch ? (selectedBatch.priceCents * qty) / 100 : 0;
+  const remaining = selectedBatch
+    ? selectedBatch.capacity - selectedBatch.sold - selectedBatch.reserved
+    : sector
+      ? sector.capacity - sector.sold - sector.reserved
+      : 0;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
-    if (!email.trim() || !sectorId || qty < 1) {
-      setErr('Preencha e-mail, setor e quantidade.');
+    if (!email.trim() || !sectorId || !selectedBatch || qty < 1) {
+      setErr('Preencha e-mail, setor, lote e quantidade.');
       return;
     }
     try {
@@ -452,6 +796,7 @@ function SellByEmailDialog({
         data: {
           email: email.trim().toLowerCase(),
           sectorId,
+          batchId: selectedBatch?.id,
           qty,
           buyerName: buyerName.trim() || undefined,
           markPaid,
@@ -470,6 +815,7 @@ function SellByEmailDialog({
     setResult(null);
     setEmail('');
     setBuyerName('');
+    setBatchId('');
     setQty(1);
     setErr(null);
   }
@@ -603,7 +949,11 @@ function SellByEmailDialog({
                 </Label>
                 <Select
                   value={sectorId}
-                  onValueChange={(v) => v && setSectorId(v)}
+                  onValueChange={(v) => {
+                    if (!v) return;
+                    setSectorId(v);
+                    setBatchId('');
+                  }}
                   items={sectors.map((s) => ({
                     value: s.id,
                     label: `${s.name} — ${(s.priceCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
@@ -639,6 +989,34 @@ function SellByEmailDialog({
                   onChange={(e) => setQty(Number(e.target.value))}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
+                Lote *
+              </Label>
+              <Select
+                value={selectedBatch?.id ?? ''}
+                onValueChange={(v) => v && setBatchId(v)}
+                items={batchItems.map((b) => ({
+                  value: b.id,
+                  label: `${b.name} - ${fmtBRL(b.priceCents)}${b.producerOnly ? ' - interno' : ''}`,
+                }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha o lote" />
+                </SelectTrigger>
+                <SelectContent>
+                  {batchItems.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      <span className="flex items-center gap-2">
+                        {b.producerOnly && <EyeOff className="h-3 w-3 text-accent" />}
+                        {b.name} - {fmtBRL(b.priceCents)}
+                        {b.producerOnly ? ' - interno' : ''}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="text-xs text-ink-dim">
               {remaining} disponível(is) · Total:{' '}

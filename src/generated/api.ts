@@ -574,6 +574,7 @@ export interface CreateEventSectorDto {
   priceCents: number;
   capacity: number;
   sortOrder: number;
+  producerOnly?: boolean;
 }
 
 export type CreateEventDtoCategory = typeof CreateEventDtoCategory[keyof typeof CreateEventDtoCategory];
@@ -808,6 +809,8 @@ export interface SellByEmailDto {
   email: string;
   /** Sector id within this event */
   sectorId: string;
+  /** Optional batch id. Producer/admin sales can target private batches. */
+  batchId?: string;
   /**
      * @minimum 1
      * @maximum 6
