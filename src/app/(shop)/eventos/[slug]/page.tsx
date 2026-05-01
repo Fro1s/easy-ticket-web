@@ -91,7 +91,8 @@ export default function EventDetailPage() {
   const maxQty = Math.min(6, Math.max(1, liveStock));
   const safeQty = Math.min(qty, maxQty);
 
-  const unit = selected.priceCents / 100;
+  const unitCents = selected.activeBatch?.priceCents ?? 0;
+  const unit = unitCents / 100;
   const subtotal = unit * safeQty;
   const feeRate = event.platformFeeRate ?? 0;
   const fee = unit * feeRate * safeQty;
@@ -226,7 +227,7 @@ export default function EventDetailPage() {
                       </div>
                     </div>
                     <div className="font-display text-[20px] font-bold tracking-[-0.4px]">
-                      {formatBRLFromCents(sector.priceCents)}
+                      {formatBRLFromCents(sector.activeBatch?.priceCents ?? 0)}
                     </div>
                     <div
                       className={cn(
@@ -314,7 +315,7 @@ export default function EventDetailPage() {
             <div className="py-4 flex flex-col gap-2 text-sm">
               <div className="flex justify-between text-ink-muted">
                 <span>
-                  {safeQty}× {formatBRLFromCents(selected.priceCents)}
+                  {safeQty}× {formatBRLFromCents(unitCents)}
                 </span>
                 <span className="text-foreground">{formatBRLFromCents(subtotal * 100)}</span>
               </div>

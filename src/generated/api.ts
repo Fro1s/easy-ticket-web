@@ -145,15 +145,24 @@ export interface EventListResponse {
   pageSize: number;
 }
 
+export interface EventBatchInfo {
+  id: string;
+  name: string;
+  priceCents: number;
+  startsAt: string | null;
+  endsAt: string | null;
+}
+
 export interface SectorResponse {
   id: string;
   name: string;
   colorHex: string;
-  priceCents: number;
   capacity: number;
   sold: number;
   reserved: number;
   sortOrder: number;
+  activeBatch: EventBatchInfo | null;
+  nextBatch: EventBatchInfo | null;
 }
 
 export type EventDetailCategory = typeof EventDetailCategory[keyof typeof EventDetailCategory];
