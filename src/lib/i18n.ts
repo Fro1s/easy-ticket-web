@@ -33,7 +33,6 @@ export const PAYMENT_PROVIDER_PT: Record<string, string> = {
 export const PAYMENT_METHOD_PT: Record<string, string> = {
   PIX: 'PIX',
   CARD: 'Cartão',
-  BOLETO: 'Boleto',
 };
 
 export const ROLE_PT: Record<string, string> = {

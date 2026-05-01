@@ -29,7 +29,6 @@ const METHODS: {
 }[] = [
   { id: 'PIX', label: 'Pix', sub: 'na hora' },
   { id: 'CARD', label: 'Cartão', sub: 'até 10× sem juros' },
-  { id: 'BOLETO', label: 'Boleto', sub: '1 a 3 dias úteis' },
 ];
 
 export default function CheckoutPage() {
@@ -183,7 +182,7 @@ function CheckoutContent() {
             <h2 className="font-display text-[20px] font-bold tracking-[-0.3px] mb-4">
               Forma de pagamento
             </h2>
-            <div className="grid grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5">
               {METHODS.map((m) => {
                 const active = method === m.id;
                 return (
@@ -232,9 +231,6 @@ function CheckoutContent() {
                     copyPaste={order.payment.copyPaste}
                     amountCents={finalTotal}
                   />
-                ) : null}
-                {order.payment?.method === 'BOLETO' && order.payment?.copyPaste ? (
-                  <BoletoView digitable={order.payment.copyPaste} />
                 ) : null}
                 {order.payment?.method === 'CARD' ? <CardView /> : null}
 
@@ -417,21 +413,6 @@ function PixView({ copyPaste, amountCents }: { copyPaste: string; amountCents: n
             </button>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function BoletoView({ digitable }: { digitable: string }) {
-  const pretty = digitable.replace(/(\d{5})(\d{5})(\d{5})(\d{6})(\d{5})(\d{6})(\d{1})(\d{14})/, '$1.$2 $3.$4 $5.$6 $7 $8');
-  return (
-    <div className="p-5 bg-input border border-dashed border-border rounded-xl">
-      <div className="font-display text-[18px] font-bold mb-2">Boleto gerado</div>
-      <div className="text-[13px] text-ink-muted mb-3">
-        Use a linha digitável no app do seu banco. Vencimento em 1 dia útil.
-      </div>
-      <div className="font-mono text-[12px] bg-background border border-border rounded-[6px] p-3 break-all">
-        {pretty}
       </div>
     </div>
   );

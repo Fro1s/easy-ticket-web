@@ -383,7 +383,6 @@ export type OrderPaymentInfoMethod = typeof OrderPaymentInfoMethod[keyof typeof 
 export const OrderPaymentInfoMethod = {
   PIX: 'PIX',
   CARD: 'CARD',
-  BOLETO: 'BOLETO',
 } as const;
 
 export interface OrderPaymentInfo {
@@ -417,7 +416,6 @@ export type OrderResponsePaymentMethod = typeof OrderResponsePaymentMethod[keyof
 export const OrderResponsePaymentMethod = {
   PIX: 'PIX',
   CARD: 'CARD',
-  BOLETO: 'BOLETO',
 } as const;
 
 export interface OrderResponse {
@@ -447,7 +445,6 @@ export type CheckoutOrderDtoMethod = typeof CheckoutOrderDtoMethod[keyof typeof 
 export const CheckoutOrderDtoMethod = {
   PIX: 'PIX',
   CARD: 'CARD',
-  BOLETO: 'BOLETO',
 } as const;
 
 export interface CheckoutOrderDto {
@@ -474,7 +471,6 @@ export type ConfirmedOrderResponsePaymentMethod = typeof ConfirmedOrderResponseP
 export const ConfirmedOrderResponsePaymentMethod = {
   PIX: 'PIX',
   CARD: 'CARD',
-  BOLETO: 'BOLETO',
 } as const;
 
 export interface ConfirmedOrderResponse {
@@ -779,7 +775,6 @@ export type ProducerOrderItemPaymentMethod = typeof ProducerOrderItemPaymentMeth
 export const ProducerOrderItemPaymentMethod = {
   PIX: 'PIX',
   CARD: 'CARD',
-  BOLETO: 'BOLETO',
 } as const;
 
 export interface ProducerOrderItem {
