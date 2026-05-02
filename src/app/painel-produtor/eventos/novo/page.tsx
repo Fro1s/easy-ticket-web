@@ -420,8 +420,24 @@ export default function NovoEventoPage() {
       pixKeyType: provider === CreateEventDtoPaymentProvider.MANUAL_PIX ? pixKeyType : undefined,
       pixHolderName: provider === CreateEventDtoPaymentProvider.MANUAL_PIX ? pixHolderName.trim() : undefined,
       platformFeeRate: Number(feePercent) / 100,
-      sectors: sectors.map((s, i) => ({ ...s, sortOrder: i })),
-    };
+      sectors: sectors.map((s, i) => ({
+        name: s.name,
+        colorHex: s.colorHex,
+        capacity: s.capacity,
+        producerOnly: s.producerOnly,
+        sortOrder: i,
+        // Single default batch with the sector's price/capacity. Producer can
+        // create more lots later via the event detail page (batch CRUD).
+        batches: [
+          {
+            name: 'Lote 1',
+            priceCents: s.priceCents,
+            capacity: s.capacity,
+            sortOrder: 0,
+          },
+        ],
+      })) as unknown as CreateEventDto['sectors'],
+    } as CreateEventDto;
     try {
       const res = await create.mutateAsync({ data: dto });
       router.replace(`/painel-produtor/eventos/${res.data.slug}`);

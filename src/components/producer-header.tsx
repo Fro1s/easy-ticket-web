@@ -16,14 +16,22 @@ import { useAuth, clearSession } from '@/lib/auth';
 import { ROLE_PT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
-const PRODUCER_LINKS = [
-  { href: '/painel-produtor', label: 'Visão geral', icon: LayoutDashboard },
-  { href: '/painel-produtor/eventos/novo', label: 'Novo evento', icon: CalendarPlus },
+type LinkRole = 'PRODUCER' | 'ADMIN' | 'STAFF';
+type LinkDef = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  roles: LinkRole[];
+};
+
+const PRODUCER_LINKS: LinkDef[] = [
+  { href: '/painel-produtor', label: 'Visão geral', icon: LayoutDashboard, roles: ['PRODUCER', 'ADMIN', 'STAFF'] },
+  { href: '/painel-produtor/eventos/novo', label: 'Novo evento', icon: CalendarPlus, roles: ['PRODUCER', 'ADMIN'] },
 ];
 
-const ADMIN_LINKS = [
-  { href: '/admin', label: 'Visão geral', icon: LayoutDashboard },
-  { href: '/painel-produtor/eventos/novo', label: 'Novo evento', icon: CalendarPlus },
+const ADMIN_LINKS: LinkDef[] = [
+  { href: '/admin', label: 'Visão geral', icon: LayoutDashboard, roles: ['ADMIN'] },
+  { href: '/painel-produtor/eventos/novo', label: 'Novo evento', icon: CalendarPlus, roles: ['PRODUCER', 'ADMIN'] },
 ];
 
 export function ProducerHeader({ scope = 'producer' }: { scope?: 'producer' | 'admin' }) {
@@ -50,7 +58,10 @@ export function ProducerHeader({ scope = 'producer' }: { scope?: 'producer' | 'a
     router.replace('/');
   }
 
-  const links = scope === 'admin' ? ADMIN_LINKS : PRODUCER_LINKS;
+  const allLinks = scope === 'admin' ? ADMIN_LINKS : PRODUCER_LINKS;
+  const links = user
+    ? allLinks.filter((l) => l.roles.includes(user.role as LinkRole))
+    : allLinks;
 
   return (
     <nav className="relative z-10 border-b border-border bg-background">

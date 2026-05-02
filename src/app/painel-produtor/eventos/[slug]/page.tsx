@@ -523,7 +523,7 @@ export default function EventoDetailPage() {
   }
 
   return (
-    <RoleGate allow={['PRODUCER', 'ADMIN']}>
+    <RoleGate allow={['PRODUCER', 'ADMIN', 'STAFF']}>
       {(user) => (
         <>
           <ProducerHeader scope={user.role === 'ADMIN' ? 'admin' : 'producer'} />
@@ -562,8 +562,13 @@ export default function EventoDetailPage() {
                         {tr(EVENT_STATUS_PT, detail.status)}
                       </span>
                       <span className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
-                        {tr(PAYMENT_PROVIDER_PT, detail.paymentProvider)} · taxa{' '}
-                        {(detail.platformFeeRate * 100).toFixed(2).replace('.', ',')}%
+                        {tr(PAYMENT_PROVIDER_PT, detail.paymentProvider)}
+                        {user.role !== 'STAFF' && (
+                          <>
+                            {' · taxa '}
+                            {(detail.platformFeeRate * 100).toFixed(2).replace('.', ',')}%
+                          </>
+                        )}
                       </span>
                     </div>
                     <h1 className="font-display text-[40px] font-extrabold leading-[1] tracking-[-1.5px] mb-2">
@@ -574,26 +579,28 @@ export default function EventoDetailPage() {
                       {detail.venue.name} · {detail.venue.city}/{detail.venue.state}
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                      <Kpi label="Vendidos" value={String(detail.kpis.ticketsSold)} />
-                      <Kpi label="Bruto" value={fmtBRL(detail.kpis.grossRevenueCents)} />
-                      <Kpi label="Taxa" value={fmtBRL(detail.kpis.platformFeeCents)} />
-                      <Kpi label="Líquido" value={fmtBRL(detail.kpis.netCents)} accent />
-                    </div>
+                    {detail.kpis && (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                        <Kpi label="Vendidos" value={String(detail.kpis.ticketsSold)} />
+                        <Kpi label="Bruto" value={fmtBRL(detail.kpis.grossRevenueCents)} />
+                        <Kpi label="Taxa" value={fmtBRL(detail.kpis.platformFeeCents)} />
+                        <Kpi label="Líquido" value={fmtBRL(detail.kpis.netCents)} accent />
+                      </div>
+                    )}
 
                     <div className="flex gap-3 flex-wrap">
-                      {detail.status === 'DRAFT' && (
-                        <>
-                          <Button onClick={onPublish} variant="accent" disabled={publish.isPending}>
-                            {publish.isPending ? 'Publicando…' : 'Publicar evento'}
+                      {detail.status === 'DRAFT' && user.role !== 'STAFF' && (
+                        <Button onClick={onPublish} variant="accent" disabled={publish.isPending}>
+                          {publish.isPending ? 'Publicando…' : 'Publicar evento'}
+                        </Button>
+                      )}
+                      {user.role !== 'STAFF' && (
+                        <Link href={`/painel-produtor/eventos/${slug}/editar`}>
+                          <Button variant="outline">
+                            <Pencil className="w-4 h-4" />
+                            Editar
                           </Button>
-                          <Link href={`/painel-produtor/eventos/${slug}/editar`}>
-                            <Button variant="outline">
-                              <Pencil className="w-4 h-4" />
-                              Editar
-                            </Button>
-                          </Link>
-                        </>
+                        </Link>
                       )}
                       <Button
                         onClick={() => setSellOpen(true)}
@@ -615,13 +622,29 @@ export default function EventoDetailPage() {
                   </div>
                 </div>
 
-                <BatchManager
-                  event={detail}
-                  onChanged={() => {
-                    ev.refetch();
-                  }}
-                />
+                {user.role !== 'STAFF' && (
+                  <BatchManager
+                    event={detail}
+                    onChanged={() => {
+                      ev.refetch();
+                    }}
+                  />
+                )}
 
+                {sellOpen && detail && (
+                  <SellByEmailDialog
+                    event={detail}
+                    open={sellOpen}
+                    onOpenChange={setSellOpen}
+                    onSold={() => {
+                      orders.refetch();
+                      ev.refetch();
+                    }}
+                  />
+                )}
+
+                {user.role !== 'STAFF' && (
+                <>
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <h2 className="font-display text-2xl font-bold">Pedidos</h2>
                   <div className="flex gap-2 flex-wrap">
@@ -641,18 +664,6 @@ export default function EventoDetailPage() {
                     ))}
                   </div>
                 </div>
-
-                {sellOpen && detail && (
-                  <SellByEmailDialog
-                    event={detail}
-                    open={sellOpen}
-                    onOpenChange={setSellOpen}
-                    onSold={() => {
-                      orders.refetch();
-                      ev.refetch();
-                    }}
-                  />
-                )}
 
                 <ConfirmManualPaymentDialog
                   orderId={confirmOrderId}
@@ -734,6 +745,8 @@ export default function EventoDetailPage() {
                       </li>
                     )}
                   </ul>
+                )}
+                </>
                 )}
               </>
             )}

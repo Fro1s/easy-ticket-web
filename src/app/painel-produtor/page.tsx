@@ -5,7 +5,10 @@ import { Plus } from 'lucide-react';
 import { RoleGate } from '@/components/role-gate';
 import { ProducerHeader } from '@/components/producer-header';
 import { Button } from '@/components/ui/button';
-import { useProducerControllerDashboard } from '@/generated/api';
+import {
+  useProducerControllerDashboard,
+  useProducerControllerListEvents,
+} from '@/generated/api';
 import { EVENT_STATUS_PT, PAYMENT_PROVIDER_PT, tr } from '@/lib/i18n';
 
 const fmtBRL = (cents: number) =>
@@ -63,21 +66,86 @@ function KpiCard({
 }
 
 export default function PainelProdutorPage() {
+  return (
+    <RoleGate allow={['PRODUCER', 'ADMIN', 'STAFF']}>
+      {(user) =>
+        user.role === 'STAFF' ? (
+          <StaffEventsView userName={user.name ?? user.email} />
+        ) : (
+          <ProducerDashboardView userName={user.name ?? user.email} />
+        )
+      }
+    </RoleGate>
+  );
+}
+
+function StaffEventsView({ userName }: { userName: string }) {
+  const { data, isLoading } = useProducerControllerListEvents();
+  const events = data?.data?.items ?? [];
+  return (
+    <>
+      <ProducerHeader scope="producer" />
+      <main className="min-h-screen bg-ink-deep px-6 md:px-8 py-10 text-foreground">
+        <div className="mx-auto max-w-6xl">
+          <div className="font-mono text-[11px] tracking-[2px] uppercase text-accent mb-3">
+            EQUIPE DE VENDAS
+          </div>
+          <h1 className="font-display text-[48px] md:text-[56px] font-extrabold leading-[0.95] tracking-[-2px] mb-10">
+            Olá, {userName}
+            <span className="text-accent">.</span>
+          </h1>
+          <h2 className="font-display text-2xl font-bold mb-5">Eventos</h2>
+          {isLoading ? (
+            <div className="text-ink-dim">Carregando…</div>
+          ) : (
+            <ul className="space-y-3">
+              {events.map((e) => (
+                <li key={e.id}>
+                  <Link
+                    href={`/painel-produtor/eventos/${e.slug}`}
+                    className="block border border-border/50 rounded-[6px] p-5 bg-card/40 hover:border-accent/60 transition"
+                  >
+                    <div className="flex items-center gap-3 mb-1">
+                      <StatusPill status={e.status} />
+                    </div>
+                    <div className="font-display text-xl font-bold truncate">
+                      {e.title}
+                    </div>
+                    <div className="text-sm text-ink-dim">
+                      {e.artist} ·{' '}
+                      {new Date(e.startsAt).toLocaleString('pt-BR')} ·{' '}
+                      {e.venue.city}/{e.venue.state}
+                    </div>
+                  </Link>
+                </li>
+              ))}
+              {events.length === 0 && (
+                <li className="text-ink-dim border border-dashed border-border/50 rounded-[6px] p-8 text-center">
+                  Nenhum evento ainda.
+                </li>
+              )}
+            </ul>
+          )}
+        </div>
+      </main>
+    </>
+  );
+}
+
+function ProducerDashboardView({ userName }: { userName: string }) {
   const { data, isLoading } = useProducerControllerDashboard();
   const dash = data?.data;
 
   return (
-    <RoleGate allow={['PRODUCER', 'ADMIN']}>
-      {(user) => (
-        <>
-          <ProducerHeader scope="producer" />
-          <main className="min-h-screen bg-ink-deep px-6 md:px-8 py-10 text-foreground">
-            <div className="mx-auto max-w-6xl">
+    <>
+      <ProducerHeader scope="producer" />
+      <main className="min-h-screen bg-ink-deep px-6 md:px-8 py-10 text-foreground">
+        <div className="mx-auto max-w-6xl">
             <div className="font-mono text-[11px] tracking-[2px] uppercase text-accent mb-3">
               VISÃO GERAL
             </div>
             <h1 className="font-display text-[48px] md:text-[56px] font-extrabold leading-[0.95] tracking-[-2px] mb-10">
-              Olá, {user.name ?? user.email}
+              Olá, {userName}
               <span className="text-accent">.</span>
             </h1>
 
@@ -172,10 +240,8 @@ export default function PainelProdutorPage() {
             ) : (
               <div className="text-red-400">Erro ao carregar dashboard.</div>
             )}
-            </div>
-          </main>
-        </>
-      )}
-    </RoleGate>
+        </div>
+      </main>
+    </>
   );
 }
