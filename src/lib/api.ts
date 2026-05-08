@@ -1,9 +1,14 @@
-import Axios, { AxiosRequestConfig, Method } from 'axios';
-import { getAccessToken } from './auth';
+import Axios, {
+  AxiosError,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+  Method,
+} from 'axios';
+import { clearSession, getAccessToken, getRefreshToken, saveSession } from './auth';
 
-export const AXIOS_INSTANCE = Axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-});
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+export const AXIOS_INSTANCE = Axios.create({ baseURL: BASE_URL });
 
 AXIOS_INSTANCE.interceptors.request.use((config) => {
   const token = getAccessToken();
@@ -13,6 +18,57 @@ AXIOS_INSTANCE.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// 401 → try refresh once, then retry the original request.
+let refreshPromise: Promise<string | null> | null = null;
+
+async function tryRefresh(): Promise<string | null> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
+  try {
+    const r = await Axios.post<{
+      accessToken: string;
+      refreshToken: string;
+      user: { id: string; email: string; name: string | null; role: string };
+    }>(`${BASE_URL}/api/v1/auth/refresh`, { refreshToken });
+    saveSession({
+      accessToken: r.data.accessToken,
+      refreshToken: r.data.refreshToken,
+      user: r.data.user,
+    });
+    return r.data.accessToken;
+  } catch {
+    clearSession();
+    return null;
+  }
+}
+
+AXIOS_INSTANCE.interceptors.response.use(
+  (r) => r,
+  async (error: AxiosError) => {
+    const original = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
+    if (
+      error.response?.status === 401 &&
+      original &&
+      !original._retry &&
+      !original.url?.includes('/auth/refresh') &&
+      !original.url?.includes('/auth/login')
+    ) {
+      original._retry = true;
+      if (!refreshPromise) refreshPromise = tryRefresh();
+      const newToken = await refreshPromise;
+      refreshPromise = null;
+      if (newToken) {
+        original.headers = original.headers ?? {};
+        (original.headers as Record<string, string>)['Authorization'] = `Bearer ${newToken}`;
+        return AXIOS_INSTANCE(original);
+      }
+    }
+    return Promise.reject(error);
+  },
+);
 
 export const customInstance = async <T>(
   url: string,

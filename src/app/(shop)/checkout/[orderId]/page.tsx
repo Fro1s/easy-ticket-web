@@ -28,7 +28,7 @@ const METHODS: {
   badge?: string;
 }[] = [
   { id: 'PIX', label: 'Pix', sub: 'na hora' },
-  { id: 'CARD', label: 'Cartão', sub: 'até 10× sem juros' },
+  { id: 'CARD', label: 'Cartão', sub: 'à vista' },
 ];
 
 export default function CheckoutPage() {
@@ -124,7 +124,18 @@ function CheckoutContent() {
     );
   }
 
-  const finalTotal = order.totalCents;
+  const isAbacate = order.payment?.provider === 'ABACATE_PAY' || order.event?.paymentProvider === 'ABACATE_PAY';
+  const estimatedProcessingFeeCents = !isAbacate
+    ? 0
+    : method === 'PIX'
+      ? 80
+      : Math.round(order.subtotalCents * 0.035) + 60;
+  const processingFeeCents = order.processingFeeCents > 0
+    ? order.processingFeeCents
+    : estimatedProcessingFeeCents;
+  const finalTotal = order.processingFeeCents > 0
+    ? order.totalCents
+    : order.totalCents + estimatedProcessingFeeCents;
   const checkoutStarted = Boolean(order.payment);
   const timeUp = secondsLeft <= 0;
   const isManualPix = order.payment?.provider === 'MANUAL_PIX';
@@ -232,7 +243,7 @@ function CheckoutContent() {
                     amountCents={finalTotal}
                   />
                 ) : null}
-                {order.payment?.method === 'CARD' ? <CardView /> : null}
+                {order.payment?.method === 'CARD' ? <CardView redirectUrl={order.payment.redirectUrl} /> : null}
 
                 {isManualPix ? (
                   <div className="mt-5 p-4 rounded-[10px] border border-yellow-500/30 bg-yellow-500/[0.06]">
@@ -285,7 +296,7 @@ function CheckoutContent() {
         {/* RIGHT — summary */}
         <aside>
           <div className="lg:sticky lg:top-6">
-            <OrderSummaryCard order={order} finalTotal={finalTotal} />
+            <OrderSummaryCard order={order} finalTotal={finalTotal} processingFeeCents={processingFeeCents} processingFeeMethod={order.processingFeeMethod ?? (isAbacate ? method : null)} />
             <div className="flex gap-2 justify-center items-center mt-4 text-[11px] text-ink-muted font-mono">
               <CheckIcon className="w-3 h-3 text-[var(--success)]" />
               CERTIFICADO SSL · ANTIFRAUDE · LGPD
@@ -418,11 +429,38 @@ function PixView({ copyPaste, amountCents }: { copyPaste: string; amountCents: n
   );
 }
 
-function CardView() {
+function CardView({ redirectUrl }: { redirectUrl: string | null }) {
+  React.useEffect(() => {
+    if (redirectUrl) {
+      const t = setTimeout(() => {
+        window.location.href = redirectUrl;
+      }, 800);
+      return () => clearTimeout(t);
+    }
+  }, [redirectUrl]);
+
+  if (!redirectUrl) {
+    return (
+      <div className="p-5 bg-input border border-dashed border-border rounded-xl text-[13px] text-ink-muted">
+        Não conseguimos preparar o checkout do cartão. Tente novamente.
+      </div>
+    );
+  }
+
   return (
-    <div className="p-5 bg-input border border-dashed border-border rounded-xl text-[13px] text-ink-muted">
-      Integração com cartão chega na Phase 4.5 via Abacate Pay. Por enquanto, use o botão{' '}
-      <b className="text-foreground">Simular pagamento</b> pra testar o fluxo completo.
+    <div className="p-5 bg-input border border-dashed border-accent/40 rounded-xl text-[13px]">
+      <div className="font-mono text-[10px] tracking-[1.5px] uppercase text-accent mb-2">
+        Redirecionando…
+      </div>
+      <div className="text-ink-muted mb-3">
+        Você será levado ao checkout seguro da Abacate Pay para concluir o pagamento.
+      </div>
+      <a
+        href={redirectUrl}
+        className="inline-block px-4 py-2 rounded-[6px] bg-accent text-background font-bold text-[13px]"
+      >
+        Abrir checkout do cartão
+      </a>
     </div>
   );
 }
@@ -430,9 +468,13 @@ function CardView() {
 function OrderSummaryCard({
   order,
   finalTotal,
+  processingFeeCents,
+  processingFeeMethod,
 }: {
   order: OrderResponse;
   finalTotal: number;
+  processingFeeCents: number;
+  processingFeeMethod: 'PIX' | 'CARD' | null;
 }) {
   return (
     <div className="bg-card border border-border rounded-[18px] p-5">
@@ -483,6 +525,20 @@ function OrderSummaryCard({
           </span>
           <span className="text-accent font-mono">{formatBRLFromCents(order.feeCents)}</span>
         </div>
+
+        {processingFeeCents > 0 ? (
+          <div className="flex justify-between text-ink-muted">
+            <span className="flex items-center gap-1.5">
+              Taxa Abacate Pay{' '}
+              {processingFeeMethod ? (
+                <span className="font-mono text-[10px] px-1.5 py-0.5 rounded-[4px] bg-foreground/[0.06] text-ink-muted">
+                  {processingFeeMethod === 'PIX' ? 'PIX' : 'cartão'}
+                </span>
+              ) : null}
+            </span>
+            <span className="font-mono">{formatBRLFromCents(processingFeeCents)}</span>
+          </div>
+        ) : null}
 
         {order.savingsCents > 0 ? (
           <div className="mt-2 p-3 rounded-[10px] bg-[var(--accent-2)]/[0.06] border border-dashed border-[var(--accent-2)]/30">

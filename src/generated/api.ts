@@ -149,7 +149,9 @@ export interface EventBatchInfo {
   id: string;
   name: string;
   priceCents: number;
+  /** @nullable */
   startsAt: string | null;
+  /** @nullable */
   endsAt: string | null;
 }
 
@@ -161,7 +163,9 @@ export interface SectorResponse {
   sold: number;
   reserved: number;
   sortOrder: number;
+  /** @nullable */
   activeBatch: EventBatchInfo | null;
+  /** @nullable */
   nextBatch: EventBatchInfo | null;
 }
 
@@ -364,6 +368,14 @@ export interface CreateOrderDto {
   items: CreateOrderItemDto[];
 }
 
+export type OrderEventResponsePaymentProvider = typeof OrderEventResponsePaymentProvider[keyof typeof OrderEventResponsePaymentProvider];
+
+
+export const OrderEventResponsePaymentProvider = {
+  MANUAL_PIX: 'MANUAL_PIX',
+  ABACATE_PAY: 'ABACATE_PAY',
+} as const;
+
 export interface OrderEventResponse {
   id: string;
   slug: string;
@@ -375,6 +387,7 @@ export interface OrderEventResponse {
   venueName: string;
   venueCity: string;
   venueState: string;
+  paymentProvider: OrderEventResponsePaymentProvider;
 }
 
 export interface OrderItemResponse {
@@ -394,6 +407,12 @@ export const OrderPaymentInfoMethod = {
   CARD: 'CARD',
 } as const;
 
+/**
+ * Redirect URL for hosted-checkout flows (card via AbacatePay). Null for inline PIX.
+ * @nullable
+ */
+export type OrderPaymentInfoRedirectUrl = { [key: string]: unknown } | null;
+
 export interface OrderPaymentInfo {
   provider: string;
   paymentId: string;
@@ -403,6 +422,11 @@ export interface OrderPaymentInfo {
   copyPaste: string | null;
   expiresAt: string;
   pixDiscountCents: number;
+  /**
+     * Redirect URL for hosted-checkout flows (card via AbacatePay). Null for inline PIX.
+     * @nullable
+     */
+  redirectUrl: OrderPaymentInfoRedirectUrl;
 }
 
 export type OrderResponseStatus = typeof OrderResponseStatus[keyof typeof OrderResponseStatus];
@@ -427,6 +451,18 @@ export const OrderResponsePaymentMethod = {
   CARD: 'CARD',
 } as const;
 
+/**
+ * Método que originou a taxa de processamento, se aplicável.
+ * @nullable
+ */
+export type OrderResponseProcessingFeeMethod = typeof OrderResponseProcessingFeeMethod[keyof typeof OrderResponseProcessingFeeMethod] | null;
+
+
+export const OrderResponseProcessingFeeMethod = {
+  PIX: 'PIX',
+  CARD: 'CARD',
+} as const;
+
 export interface OrderResponse {
   id: string;
   status: OrderResponseStatus;
@@ -444,6 +480,13 @@ export interface OrderResponse {
   items: OrderItemResponse[];
   /** @nullable */
   payment: OrderPaymentInfo | null;
+  /** Taxa de processamento (PSP) em centavos. Zero para MANUAL_PIX/sell-by-email. */
+  processingFeeCents: number;
+  /**
+     * Método que originou a taxa de processamento, se aplicável.
+     * @nullable
+     */
+  processingFeeMethod: OrderResponseProcessingFeeMethod;
   competitorTotalCents: number;
   savingsCents: number;
 }
@@ -482,6 +525,18 @@ export const ConfirmedOrderResponsePaymentMethod = {
   CARD: 'CARD',
 } as const;
 
+/**
+ * Método que originou a taxa de processamento, se aplicável.
+ * @nullable
+ */
+export type ConfirmedOrderResponseProcessingFeeMethod = typeof ConfirmedOrderResponseProcessingFeeMethod[keyof typeof ConfirmedOrderResponseProcessingFeeMethod] | null;
+
+
+export const ConfirmedOrderResponseProcessingFeeMethod = {
+  PIX: 'PIX',
+  CARD: 'CARD',
+} as const;
+
 export interface ConfirmedOrderResponse {
   id: string;
   status: ConfirmedOrderResponseStatus;
@@ -499,6 +554,13 @@ export interface ConfirmedOrderResponse {
   items: OrderItemResponse[];
   /** @nullable */
   payment: OrderPaymentInfo | null;
+  /** Taxa de processamento (PSP) em centavos. Zero para MANUAL_PIX/sell-by-email. */
+  processingFeeCents: number;
+  /**
+     * Método que originou a taxa de processamento, se aplicável.
+     * @nullable
+     */
+  processingFeeMethod: ConfirmedOrderResponseProcessingFeeMethod;
   competitorTotalCents: number;
   savingsCents: number;
   ticketIds: string[];
@@ -561,7 +623,8 @@ export interface ProducerEventSummary {
   paymentProvider: ProducerEventSummaryPaymentProvider;
   platformFeeRate: number;
   venue: ProducerEventVenue;
-  kpis: ProducerEventKpis;
+  /** @nullable */
+  kpis: ProducerEventKpis | null;
 }
 
 export interface ProducerDashboardResponse {
@@ -577,13 +640,23 @@ export interface ProducerEventListResponse {
   items: ProducerEventSummary[];
 }
 
-export interface CreateEventSectorDto {
+export interface CreateBatchDto {
   name: string;
-  colorHex: string;
   priceCents: number;
   capacity: number;
   sortOrder: number;
   producerOnly?: boolean;
+  startsAt?: string;
+  endsAt?: string;
+}
+
+export interface CreateEventSectorDto {
+  name: string;
+  colorHex: string;
+  capacity: number;
+  sortOrder: number;
+  producerOnly?: boolean;
+  batches: CreateBatchDto[];
 }
 
 export type CreateEventDtoCategory = typeof CreateEventDtoCategory[keyof typeof CreateEventDtoCategory];
@@ -638,15 +711,29 @@ export interface CreateEventDto {
   sectors: CreateEventSectorDto[];
 }
 
-export interface ProducerEventSectorSummary {
+export interface ProducerEventBatchSummary {
   id: string;
   name: string;
-  colorHex: string;
   priceCents: number;
   capacity: number;
   sold: number;
   reserved: number;
   sortOrder: number;
+  /** @nullable */
+  startsAt: string | null;
+  /** @nullable */
+  endsAt: string | null;
+}
+
+export interface ProducerEventSectorSummary {
+  id: string;
+  name: string;
+  colorHex: string;
+  capacity: number;
+  sold: number;
+  reserved: number;
+  sortOrder: number;
+  batches: ProducerEventBatchSummary[];
 }
 
 export type ProducerEventDetailCategory = typeof ProducerEventDetailCategory[keyof typeof ProducerEventDetailCategory];
@@ -705,7 +792,8 @@ export interface ProducerEventDetail {
   paymentProvider: ProducerEventDetailPaymentProvider;
   platformFeeRate: number;
   venue: ProducerEventVenue;
-  kpis: ProducerEventKpis;
+  /** @nullable */
+  kpis: ProducerEventKpis | null;
   /** @nullable */
   description: string | null;
   ageRating: number;
@@ -871,6 +959,65 @@ export interface ConfirmManualPaymentDto {
      * @maxLength 200
      */
   reference?: string;
+}
+
+export type CancelOrderResponseStatus = typeof CancelOrderResponseStatus[keyof typeof CancelOrderResponseStatus];
+
+
+export const CancelOrderResponseStatus = {
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED',
+  EXPIRED: 'EXPIRED',
+} as const;
+
+export interface CancelOrderResponse {
+  orderId: string;
+  status: CancelOrderResponseStatus;
+  releasedQty: number;
+}
+
+export interface BatchResponse {
+  id: string;
+  sectorId: string;
+  name: string;
+  priceCents: number;
+  capacity: number;
+  sold: number;
+  reserved: number;
+  sortOrder: number;
+  producerOnly: boolean;
+  /** @nullable */
+  startsAt: string | null;
+  /** @nullable */
+  endsAt: string | null;
+}
+
+export interface BatchListResponse {
+  items: BatchResponse[];
+}
+
+/**
+ * @nullable
+ */
+export type UpdateBatchDtoStartsAt = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type UpdateBatchDtoEndsAt = { [key: string]: unknown } | null;
+
+export interface UpdateBatchDto {
+  name?: string;
+  priceCents?: number;
+  capacity?: number;
+  sortOrder?: number;
+  producerOnly?: boolean;
+  /** @nullable */
+  startsAt?: UpdateBatchDtoStartsAt;
+  /** @nullable */
+  endsAt?: UpdateBatchDtoEndsAt;
 }
 
 export type SharedTicketEventCategory = typeof SharedTicketEventCategory[keyof typeof SharedTicketEventCategory];
@@ -2635,7 +2782,7 @@ export function useOrdersControllerFindOne<TData = Awaited<ReturnType<typeof ord
 
 
 /**
- * @summary Choose a payment method and create the payment session (Pix QR / boleto / card token)
+ * @summary Choose a payment method and create the payment session (Pix QR / card token)
  */
 export type ordersControllerCheckoutResponse200 = {
   data: OrderResponse
@@ -2705,7 +2852,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type OrdersControllerCheckoutMutationError = unknown
 
     /**
- * @summary Choose a payment method and create the payment session (Pix QR / boleto / card token)
+ * @summary Choose a payment method and create the payment session (Pix QR / card token)
  */
 export const useOrdersControllerCheckout = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ordersControllerCheckout>>, TError,{id: string;data: CheckoutOrderDto}, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -3878,6 +4025,469 @@ export const useProducerControllerConfirmManualPayment = <TError = unknown,
         TContext
       > => {
       return useMutation(getProducerControllerConfirmManualPaymentMutationOptions(options), queryClient);
+    }
+
+/**
+ * @summary Cancel a pending unpaid order and release its reserved ticket stock
+ */
+export type producerControllerCancelPendingOrderResponse200 = {
+  data: CancelOrderResponse
+  status: 200
+}
+
+export type producerControllerCancelPendingOrderResponseSuccess = (producerControllerCancelPendingOrderResponse200) & {
+  headers: Headers;
+};
+;
+
+export type producerControllerCancelPendingOrderResponse = (producerControllerCancelPendingOrderResponseSuccess)
+
+export const getProducerControllerCancelPendingOrderUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/producer/orders/${id}/cancel`
+}
+
+export const producerControllerCancelPendingOrder = async (id: string, options?: RequestInit): Promise<producerControllerCancelPendingOrderResponse> => {
+
+  return customInstance<producerControllerCancelPendingOrderResponse>(getProducerControllerCancelPendingOrderUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getProducerControllerCancelPendingOrderMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof producerControllerCancelPendingOrder>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof producerControllerCancelPendingOrder>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['producerControllerCancelPendingOrder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof producerControllerCancelPendingOrder>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  producerControllerCancelPendingOrder(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProducerControllerCancelPendingOrderMutationResult = NonNullable<Awaited<ReturnType<typeof producerControllerCancelPendingOrder>>>
+
+    export type ProducerControllerCancelPendingOrderMutationError = unknown
+
+    /**
+ * @summary Cancel a pending unpaid order and release its reserved ticket stock
+ */
+export const useProducerControllerCancelPendingOrder = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof producerControllerCancelPendingOrder>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof producerControllerCancelPendingOrder>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getProducerControllerCancelPendingOrderMutationOptions(options), queryClient);
+    }
+
+/**
+ * @summary List batches for a sector
+ */
+export type producerControllerListBatchesResponse200 = {
+  data: BatchListResponse
+  status: 200
+}
+
+export type producerControllerListBatchesResponseSuccess = (producerControllerListBatchesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type producerControllerListBatchesResponse = (producerControllerListBatchesResponseSuccess)
+
+export const getProducerControllerListBatchesUrl = (eventId: string,
+    sectorId: string,) => {
+
+
+
+
+  return `/api/v1/producer/events/${eventId}/sectors/${sectorId}/batches`
+}
+
+export const producerControllerListBatches = async (eventId: string,
+    sectorId: string, options?: RequestInit): Promise<producerControllerListBatchesResponse> => {
+
+  return customInstance<producerControllerListBatchesResponse>(getProducerControllerListBatchesUrl(eventId,sectorId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getProducerControllerListBatchesQueryKey = (eventId: string,
+    sectorId: string,) => {
+    return [
+    `/api/v1/producer/events/${eventId}/sectors/${sectorId}/batches`
+    ] as const;
+    }
+
+
+export const getProducerControllerListBatchesQueryOptions = <TData = Awaited<ReturnType<typeof producerControllerListBatches>>, TError = unknown>(eventId: string,
+    sectorId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerListBatches>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getProducerControllerListBatchesQueryKey(eventId,sectorId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof producerControllerListBatches>>> = ({ signal }) => producerControllerListBatches(eventId,sectorId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(eventId && sectorId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof producerControllerListBatches>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ProducerControllerListBatchesQueryResult = NonNullable<Awaited<ReturnType<typeof producerControllerListBatches>>>
+export type ProducerControllerListBatchesQueryError = unknown
+
+
+export function useProducerControllerListBatches<TData = Awaited<ReturnType<typeof producerControllerListBatches>>, TError = unknown>(
+ eventId: string,
+    sectorId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerListBatches>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof producerControllerListBatches>>,
+          TError,
+          Awaited<ReturnType<typeof producerControllerListBatches>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProducerControllerListBatches<TData = Awaited<ReturnType<typeof producerControllerListBatches>>, TError = unknown>(
+ eventId: string,
+    sectorId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerListBatches>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof producerControllerListBatches>>,
+          TError,
+          Awaited<ReturnType<typeof producerControllerListBatches>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useProducerControllerListBatches<TData = Awaited<ReturnType<typeof producerControllerListBatches>>, TError = unknown>(
+ eventId: string,
+    sectorId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerListBatches>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List batches for a sector
+ */
+
+export function useProducerControllerListBatches<TData = Awaited<ReturnType<typeof producerControllerListBatches>>, TError = unknown>(
+ eventId: string,
+    sectorId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerListBatches>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getProducerControllerListBatchesQueryOptions(eventId,sectorId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+/**
+ * @summary Create a batch in a sector
+ */
+export type producerControllerCreateBatchResponse201 = {
+  data: BatchResponse
+  status: 201
+}
+
+export type producerControllerCreateBatchResponseSuccess = (producerControllerCreateBatchResponse201) & {
+  headers: Headers;
+};
+;
+
+export type producerControllerCreateBatchResponse = (producerControllerCreateBatchResponseSuccess)
+
+export const getProducerControllerCreateBatchUrl = (eventId: string,
+    sectorId: string,) => {
+
+
+
+
+  return `/api/v1/producer/events/${eventId}/sectors/${sectorId}/batches`
+}
+
+export const producerControllerCreateBatch = async (eventId: string,
+    sectorId: string,
+    createBatchDto: CreateBatchDto, options?: RequestInit): Promise<producerControllerCreateBatchResponse> => {
+
+  return customInstance<producerControllerCreateBatchResponse>(getProducerControllerCreateBatchUrl(eventId,sectorId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createBatchDto,)
+  }
+);}
+
+
+
+
+export const getProducerControllerCreateBatchMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof producerControllerCreateBatch>>, TError,{eventId: string;sectorId: string;data: CreateBatchDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof producerControllerCreateBatch>>, TError,{eventId: string;sectorId: string;data: CreateBatchDto}, TContext> => {
+
+const mutationKey = ['producerControllerCreateBatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof producerControllerCreateBatch>>, {eventId: string;sectorId: string;data: CreateBatchDto}> = (props) => {
+          const {eventId,sectorId,data} = props ?? {};
+
+          return  producerControllerCreateBatch(eventId,sectorId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProducerControllerCreateBatchMutationResult = NonNullable<Awaited<ReturnType<typeof producerControllerCreateBatch>>>
+    export type ProducerControllerCreateBatchMutationBody = CreateBatchDto
+    export type ProducerControllerCreateBatchMutationError = unknown
+
+    /**
+ * @summary Create a batch in a sector
+ */
+export const useProducerControllerCreateBatch = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof producerControllerCreateBatch>>, TError,{eventId: string;sectorId: string;data: CreateBatchDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof producerControllerCreateBatch>>,
+        TError,
+        {eventId: string;sectorId: string;data: CreateBatchDto},
+        TContext
+      > => {
+      return useMutation(getProducerControllerCreateBatchMutationOptions(options), queryClient);
+    }
+
+/**
+ * @summary Update a batch
+ */
+export type producerControllerUpdateBatchResponse200 = {
+  data: BatchResponse
+  status: 200
+}
+
+export type producerControllerUpdateBatchResponseSuccess = (producerControllerUpdateBatchResponse200) & {
+  headers: Headers;
+};
+;
+
+export type producerControllerUpdateBatchResponse = (producerControllerUpdateBatchResponseSuccess)
+
+export const getProducerControllerUpdateBatchUrl = (eventId: string,
+    sectorId: string,
+    batchId: string,) => {
+
+
+
+
+  return `/api/v1/producer/events/${eventId}/sectors/${sectorId}/batches/${batchId}`
+}
+
+export const producerControllerUpdateBatch = async (eventId: string,
+    sectorId: string,
+    batchId: string,
+    updateBatchDto: UpdateBatchDto, options?: RequestInit): Promise<producerControllerUpdateBatchResponse> => {
+
+  return customInstance<producerControllerUpdateBatchResponse>(getProducerControllerUpdateBatchUrl(eventId,sectorId,batchId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateBatchDto,)
+  }
+);}
+
+
+
+
+export const getProducerControllerUpdateBatchMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof producerControllerUpdateBatch>>, TError,{eventId: string;sectorId: string;batchId: string;data: UpdateBatchDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof producerControllerUpdateBatch>>, TError,{eventId: string;sectorId: string;batchId: string;data: UpdateBatchDto}, TContext> => {
+
+const mutationKey = ['producerControllerUpdateBatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof producerControllerUpdateBatch>>, {eventId: string;sectorId: string;batchId: string;data: UpdateBatchDto}> = (props) => {
+          const {eventId,sectorId,batchId,data} = props ?? {};
+
+          return  producerControllerUpdateBatch(eventId,sectorId,batchId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProducerControllerUpdateBatchMutationResult = NonNullable<Awaited<ReturnType<typeof producerControllerUpdateBatch>>>
+    export type ProducerControllerUpdateBatchMutationBody = UpdateBatchDto
+    export type ProducerControllerUpdateBatchMutationError = unknown
+
+    /**
+ * @summary Update a batch
+ */
+export const useProducerControllerUpdateBatch = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof producerControllerUpdateBatch>>, TError,{eventId: string;sectorId: string;batchId: string;data: UpdateBatchDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof producerControllerUpdateBatch>>,
+        TError,
+        {eventId: string;sectorId: string;batchId: string;data: UpdateBatchDto},
+        TContext
+      > => {
+      return useMutation(getProducerControllerUpdateBatchMutationOptions(options), queryClient);
+    }
+
+/**
+ * @summary Delete a batch (only if no tickets sold)
+ */
+export type producerControllerRemoveBatchResponse204 = {
+  data: void
+  status: 204
+}
+
+export type producerControllerRemoveBatchResponseSuccess = (producerControllerRemoveBatchResponse204) & {
+  headers: Headers;
+};
+;
+
+export type producerControllerRemoveBatchResponse = (producerControllerRemoveBatchResponseSuccess)
+
+export const getProducerControllerRemoveBatchUrl = (eventId: string,
+    sectorId: string,
+    batchId: string,) => {
+
+
+
+
+  return `/api/v1/producer/events/${eventId}/sectors/${sectorId}/batches/${batchId}`
+}
+
+export const producerControllerRemoveBatch = async (eventId: string,
+    sectorId: string,
+    batchId: string, options?: RequestInit): Promise<producerControllerRemoveBatchResponse> => {
+
+  return customInstance<producerControllerRemoveBatchResponse>(getProducerControllerRemoveBatchUrl(eventId,sectorId,batchId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getProducerControllerRemoveBatchMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof producerControllerRemoveBatch>>, TError,{eventId: string;sectorId: string;batchId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof producerControllerRemoveBatch>>, TError,{eventId: string;sectorId: string;batchId: string}, TContext> => {
+
+const mutationKey = ['producerControllerRemoveBatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof producerControllerRemoveBatch>>, {eventId: string;sectorId: string;batchId: string}> = (props) => {
+          const {eventId,sectorId,batchId} = props ?? {};
+
+          return  producerControllerRemoveBatch(eventId,sectorId,batchId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProducerControllerRemoveBatchMutationResult = NonNullable<Awaited<ReturnType<typeof producerControllerRemoveBatch>>>
+
+    export type ProducerControllerRemoveBatchMutationError = unknown
+
+    /**
+ * @summary Delete a batch (only if no tickets sold)
+ */
+export const useProducerControllerRemoveBatch = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof producerControllerRemoveBatch>>, TError,{eventId: string;sectorId: string;batchId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof producerControllerRemoveBatch>>,
+        TError,
+        {eventId: string;sectorId: string;batchId: string},
+        TContext
+      > => {
+      return useMutation(getProducerControllerRemoveBatchMutationOptions(options), queryClient);
     }
 
 /**

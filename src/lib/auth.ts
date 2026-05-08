@@ -18,6 +18,11 @@ export function getAccessToken(): string | null {
   return window.localStorage.getItem(ACCESS_KEY);
 }
 
+export function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(REFRESH_KEY);
+}
+
 export function getStoredUser(): AuthUser | null {
   if (typeof window === 'undefined') return null;
   const raw = window.localStorage.getItem(USER_KEY);

@@ -202,9 +202,9 @@ export default function EditarEventoPage() {
       description: description.trim(),
       venueId,
       paymentProvider: provider,
-      pixKey: provider === UpdateEventDtoPaymentProvider.MANUAL_PIX ? pixKey.trim() : undefined,
-      pixKeyType: provider === UpdateEventDtoPaymentProvider.MANUAL_PIX ? pixKeyType : undefined,
-      pixHolderName: provider === UpdateEventDtoPaymentProvider.MANUAL_PIX ? pixHolderName.trim() : undefined,
+      pixKey: pixKey.trim() || undefined,
+      pixKeyType: pixKey.trim() ? pixKeyType : undefined,
+      pixHolderName: pixHolderName.trim() || undefined,
       platformFeeRate: Number(feePercent) / 100,
     };
     try {
@@ -381,35 +381,42 @@ export default function EditarEventoPage() {
                       ))}
                     </div>
 
-                    {provider === UpdateEventDtoPaymentProvider.MANUAL_PIX && (
-                      <div className="space-y-4 mb-4">
-                        <div className="grid grid-cols-[1fr_180px] gap-3">
-                          <div className="space-y-2">
-                            <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Chave PIX *</Label>
-                            <Input value={pixKey} onChange={(e) => setPixKey(e.target.value)} required />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Tipo *</Label>
-                            <Select value={pixKeyType ?? ''} onValueChange={(v) => v && setPixKeyType(v as UpdateEventDto['pixKeyType'])}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {PIX_KEY_TYPES.map((t) => (
-                                  <SelectItem key={t} value={t}>
-                                    {PIX_KEY_TYPE_PT[t] ?? t}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                    <div className="space-y-4 mb-4">
+                      <div className="text-[11px] text-ink-dim">
+                        {provider === UpdateEventDtoPaymentProvider.MANUAL_PIX
+                          ? 'Chave PIX usada no checkout do comprador.'
+                          : 'Opcional. Usada apenas pelo painel do vendedor (venda por e-mail) — o comprador online paga pela Abacate.'}
+                      </div>
+                      <div className="grid grid-cols-[1fr_180px] gap-3">
+                        <div className="space-y-2">
+                          <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">
+                            Chave PIX {provider === UpdateEventDtoPaymentProvider.MANUAL_PIX ? '*' : '(opcional)'}
+                          </Label>
+                          <Input value={pixKey} onChange={(e) => setPixKey(e.target.value)} required={provider === UpdateEventDtoPaymentProvider.MANUAL_PIX} />
                         </div>
                         <div className="space-y-2">
-                          <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Nome do beneficiário *</Label>
-                          <Input value={pixHolderName} onChange={(e) => setPixHolderName(e.target.value)} required />
+                          <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Tipo</Label>
+                          <Select value={pixKeyType ?? ''} onValueChange={(v) => v && setPixKeyType(v as UpdateEventDto['pixKeyType'])}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PIX_KEY_TYPES.map((t) => (
+                                <SelectItem key={t} value={t}>
+                                  {PIX_KEY_TYPE_PT[t] ?? t}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
-                    )}
+                      <div className="space-y-2">
+                        <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">
+                          Nome do beneficiário {provider === UpdateEventDtoPaymentProvider.MANUAL_PIX ? '*' : '(opcional)'}
+                        </Label>
+                        <Input value={pixHolderName} onChange={(e) => setPixHolderName(e.target.value)} required={provider === UpdateEventDtoPaymentProvider.MANUAL_PIX} />
+                      </div>
+                    </div>
 
                     <div className="space-y-2">
                       <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Taxa Easy Ticket (%)</Label>

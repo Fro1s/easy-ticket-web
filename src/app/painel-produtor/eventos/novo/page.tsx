@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -183,7 +183,7 @@ function NewVenueDialog({
       const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
       const data: ViaCepResponse = await res.json();
       if (data.erro) {
-        setCepError('CEP nÃ£o encontrado.');
+        setCepError('CEP não encontrado.');
         return;
       }
       if (data.logradouro) setStreet(data.logradouro);
@@ -272,7 +272,7 @@ function NewVenueDialog({
             <div className="space-y-2">
               <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Logradouro / Bairro</Label>
               <div className="text-sm text-ink-muted">
-                {street}{neighborhood ? ` Â· ${neighborhood}` : ''}
+                {street}{neighborhood ? ` · ${neighborhood}` : ''}
               </div>
             </div>
           )}
@@ -280,7 +280,7 @@ function NewVenueDialog({
           <div className="grid grid-cols-[1fr_120px] gap-3">
             <div className="space-y-2">
               <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Cidade *</Label>
-              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="SÃ£o Paulo" required />
+              <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="São Paulo" required />
             </div>
             <div className="space-y-2">
               <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">UF *</Label>
@@ -313,7 +313,7 @@ function NewVenueDialog({
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button type="submit" variant="accent" disabled={createMut.isPending}>
-              {createMut.isPending ? 'Criandoâ€¦' : 'Criar local'}
+              {createMut.isPending ? 'Criando…' : 'Criar local'}
             </Button>
           </DialogFooter>
         </form>
@@ -363,17 +363,17 @@ export default function NovoEventoPage() {
 
   const validation = useMemo(() => {
     const errs: string[] = [];
-    if (!title.trim()) errs.push('Informe o tÃ­tulo.');
+    if (!title.trim()) errs.push('Informe o título.');
     if (!artist.trim()) errs.push('Informe o artista.');
     if (!venueId) errs.push('Escolha o local.');
     if (!posterUrl.trim()) errs.push('Informe a URL do poster.');
-    if (!description.trim()) errs.push('Informe a descriÃ§Ã£o.');
+    if (!description.trim()) errs.push('Informe a descrição.');
     const startsAt = combineDateTime(startsDate, startsTime);
     const doorsAt = combineDateTime(doorsDate, doorsTime);
-    if (!startsAt) errs.push('Informe data e hora de inÃ­cio.');
+    if (!startsAt) errs.push('Informe data e hora de início.');
     if (!doorsAt) errs.push('Informe data e hora de abertura.');
     if (startsAt && doorsAt && new Date(doorsAt) > new Date(startsAt)) {
-      errs.push('Abertura precisa ser antes do inÃ­cio.');
+      errs.push('Abertura precisa ser antes do início.');
     }
     const feeNum = Number(feePercent);
     if (Number.isNaN(feeNum) || feeNum < 0 || feeNum > 50) {
@@ -381,12 +381,12 @@ export default function NovoEventoPage() {
     }
     if (provider === CreateEventDtoPaymentProvider.MANUAL_PIX) {
       if (!pixKey.trim()) errs.push('Informe a chave PIX.');
-      if (!pixHolderName.trim()) errs.push('Informe o nome do beneficiÃ¡rio.');
+      if (!pixHolderName.trim()) errs.push('Informe o nome do beneficiário.');
     }
     sectors.forEach((s, i) => {
-      if (!s.name.trim()) errs.push(`Setor ${i + 1}: nome obrigatÃ³rio.`);
+      if (!s.name.trim()) errs.push(`Setor ${i + 1}: nome obrigatório.`);
       if (!(s.priceCents >= 0)) errs.push(`Setor ${i + 1}: preço inválido.`);
-      if (!(s.capacity >= 1)) errs.push(`Setor ${i + 1}: capacidade â‰¥ 1.`);
+      if (!(s.capacity >= 1)) errs.push(`Setor ${i + 1}: capacidade ≥ 1.`);
     });
     return { errs, startsAt, doorsAt };
   }, [
@@ -402,7 +402,7 @@ export default function NovoEventoPage() {
     ev.preventDefault();
     setError(null);
     if (validation.errs.length) {
-      setError(validation.errs.join(' Â· '));
+      setError(validation.errs.join(' · '));
       return;
     }
     const dto: CreateEventDto = {
@@ -416,9 +416,9 @@ export default function NovoEventoPage() {
       description: description.trim(),
       venueId,
       paymentProvider: provider,
-      pixKey: provider === CreateEventDtoPaymentProvider.MANUAL_PIX ? pixKey.trim() : undefined,
-      pixKeyType: provider === CreateEventDtoPaymentProvider.MANUAL_PIX ? pixKeyType : undefined,
-      pixHolderName: provider === CreateEventDtoPaymentProvider.MANUAL_PIX ? pixHolderName.trim() : undefined,
+      pixKey: pixKey.trim() || undefined,
+      pixKeyType: pixKey.trim() ? pixKeyType : undefined,
+      pixHolderName: pixHolderName.trim() || undefined,
       platformFeeRate: Number(feePercent) / 100,
       sectors: sectors.map((s, i) => ({
         name: s.name,
@@ -460,11 +460,11 @@ export default function NovoEventoPage() {
                 href="/painel-produtor"
                 className="inline-block mb-6 font-mono text-[11px] tracking-[2px] uppercase text-ink-dim hover:text-foreground"
               >
-                â† Voltar
+                ← Voltar
               </Link>
 
               <div className="font-mono text-[11px] tracking-[2px] uppercase text-accent mb-3">
-                NOVO EVENTO Â· RASCUNHO
+                NOVO EVENTO · RASCUNHO
               </div>
             <h1 className="font-display text-[44px] font-extrabold leading-[0.95] tracking-[-2px] mb-10">
               Crie seu evento<span className="text-accent">.</span>
@@ -472,7 +472,7 @@ export default function NovoEventoPage() {
 
             <form onSubmit={onSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">TÃ­tulo *</Label>
+                <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Título *</Label>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
               </div>
 
@@ -498,7 +498,7 @@ export default function NovoEventoPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">ClassificaÃ§Ã£o (idade) *</Label>
+                  <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Classificação (idade) *</Label>
                   <Input
                     type="number"
                     min={0}
@@ -512,7 +512,7 @@ export default function NovoEventoPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DatePickerField
-                  label="InÃ­cio"
+                  label="Início"
                   date={startsDate}
                   setDate={setStartsDate}
                   time={startsTime}
@@ -520,7 +520,7 @@ export default function NovoEventoPage() {
                   required
                 />
                 <DatePickerField
-                  label="Abertura dos portÃµes"
+                  label="Abertura dos portões"
                   date={doorsDate}
                   setDate={setDoorsDate}
                   time={doorsTime}
@@ -544,16 +544,16 @@ export default function NovoEventoPage() {
                   onValueChange={(v) => v && setVenueId(v)}
                   items={venues.map((v) => ({
                     value: v.id,
-                    label: `${v.name} â€” ${v.city}/${v.state} (cap. ${v.capacity.toLocaleString('pt-BR')})`,
+                    label: `${v.name} — ${v.city}/${v.state} (cap. ${v.capacity.toLocaleString('pt-BR')})`,
                   }))}
                 >
                   <SelectTrigger className="h-12">
-                    <SelectValue placeholder="â€” escolha um local â€”" />
+                    <SelectValue placeholder="— escolha um local —" />
                   </SelectTrigger>
                   <SelectContent>
                     {venues.map((v) => (
                       <SelectItem key={v.id} value={v.id}>
-                        {v.name} â€” {v.city}/{v.state} (cap. {v.capacity.toLocaleString('pt-BR')})
+                        {v.name} — {v.city}/{v.state} (cap. {v.capacity.toLocaleString('pt-BR')})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -565,14 +565,14 @@ export default function NovoEventoPage() {
                 <Input
                   value={posterUrl}
                   onChange={(e) => setPosterUrl(e.target.value)}
-                  placeholder="https://â€¦ ou linear-gradient(â€¦)"
+                  placeholder="https://… ou linear-gradient(…)"
                   maxLength={500}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">DescriÃ§Ã£o *</Label>
+                <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Descrição *</Label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -598,7 +598,7 @@ export default function NovoEventoPage() {
                     <button
                       type="button"
                       key={p}
-                      onClick={() => setProvider(p)}
+                      onClick={() => { setProvider(p); setError(null); }}
                       className={cn(
                         'px-4 py-2 rounded-[4px] font-mono text-[11px] tracking-[2px] uppercase border transition-colors',
                         provider === p
@@ -611,45 +611,52 @@ export default function NovoEventoPage() {
                   ))}
                 </div>
 
-                {provider === CreateEventDtoPaymentProvider.MANUAL_PIX && (
-                  <div className="space-y-4 mb-4">
-                    <div className="grid grid-cols-[1fr_180px] gap-3">
-                      <div className="space-y-2">
-                        <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Chave PIX *</Label>
-                        <Input
-                          value={pixKey}
-                          onChange={(e) => setPixKey(e.target.value)}
-                          placeholder="Ex: 00.000.000/0001-00"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Tipo *</Label>
-                        <Select value={pixKeyType ?? ''} onValueChange={(v) => v && setPixKeyType(v as CreateEventDto['pixKeyType'])}>
-                          <SelectTrigger className="h-12">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {PIX_KEY_TYPES.map((t) => (
-                              <SelectItem key={t!} value={t!}>
-                                {PIX_KEY_TYPE_PT[t!] ?? t}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+                <div className="space-y-4 mb-4">
+                  <div className="text-[11px] text-ink-dim">
+                    {provider === CreateEventDtoPaymentProvider.MANUAL_PIX
+                      ? 'Chave PIX usada no checkout do comprador.'
+                      : 'Opcional. Usada apenas pelo painel do vendedor (venda por e-mail) — o comprador online paga pela Abacate.'}
+                  </div>
+                  <div className="grid grid-cols-[1fr_180px] gap-3">
                     <div className="space-y-2">
-                      <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Nome do beneficiÃ¡rio *</Label>
+                      <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">
+                        Chave PIX {provider === CreateEventDtoPaymentProvider.MANUAL_PIX ? '*' : '(opcional)'}
+                      </Label>
                       <Input
-                        value={pixHolderName}
-                        onChange={(e) => setPixHolderName(e.target.value)}
-                        placeholder="Como aparece no QR Code estÃ¡tico"
-                        required
+                        value={pixKey}
+                        onChange={(e) => setPixKey(e.target.value)}
+                        placeholder="Ex: 00.000.000/0001-00"
+                        required={provider === CreateEventDtoPaymentProvider.MANUAL_PIX}
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Tipo</Label>
+                      <Select value={pixKeyType ?? ''} onValueChange={(v) => v && setPixKeyType(v as CreateEventDto['pixKeyType'])}>
+                        <SelectTrigger className="h-12">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PIX_KEY_TYPES.map((t) => (
+                            <SelectItem key={t!} value={t!}>
+                              {PIX_KEY_TYPE_PT[t!] ?? t}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                )}
+                  <div className="space-y-2">
+                    <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">
+                      Nome do beneficiário {provider === CreateEventDtoPaymentProvider.MANUAL_PIX ? '*' : '(opcional)'}
+                    </Label>
+                    <Input
+                      value={pixHolderName}
+                      onChange={(e) => setPixHolderName(e.target.value)}
+                      placeholder="Como aparece no QR Code estático"
+                      required={provider === CreateEventDtoPaymentProvider.MANUAL_PIX}
+                    />
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">
@@ -727,7 +734,7 @@ export default function NovoEventoPage() {
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">PreÃ§o (R$)</Label>
+                          <Label className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">Preço (R$)</Label>
                           <Input
                             type="number"
                             min={0}
@@ -759,7 +766,7 @@ export default function NovoEventoPage() {
                           className="h-12 grid place-items-center text-red-400 hover:text-red-300 disabled:opacity-30 text-xl"
                           aria-label="Remover setor"
                         >
-                          Ã—
+                          ×
                         </button>
                       </div>
                       <label className="mt-3 flex items-start gap-2 rounded-[4px] border border-border/40 bg-ink-deep/40 px-3 py-2 text-xs text-ink-muted">
@@ -778,7 +785,7 @@ export default function NovoEventoPage() {
                       </label>
                       {s.priceCents > 0 && s.capacity > 0 && (
                         <div className="text-[11px] text-ink-dim mt-2 font-mono">
-                          {s.capacity.toLocaleString('pt-BR')} ingressos Ã— {brlFromCents(s.priceCents)} = potencial {brlFromCents(s.priceCents * s.capacity)}
+                          {s.capacity.toLocaleString('pt-BR')} ingressos × {brlFromCents(s.priceCents)} = potencial {brlFromCents(s.priceCents * s.capacity)}
                         </div>
                       )}
                     </div>
@@ -792,6 +799,19 @@ export default function NovoEventoPage() {
                 </div>
               )}
 
+              {!canSubmit && validation.errs.length > 0 && !error && (
+                <div className="border-l-2 border-amber-500 bg-amber-500/10 px-3 py-2 text-[13px] text-amber-300">
+                  <div className="font-mono text-[10px] uppercase tracking-[1.5px] mb-1 text-amber-400/80">
+                    Falta preencher
+                  </div>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    {validation.errs.map((e, i) => (
+                      <li key={i}>{e}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4 border-t border-border/40">
                 <Button
                   type="submit"
@@ -799,7 +819,7 @@ export default function NovoEventoPage() {
                   size="lg"
                   disabled={!canSubmit}
                 >
-                  {create.isPending ? 'Criandoâ€¦' : 'Criar como rascunho'}
+                  {create.isPending ? 'Criando…' : 'Criar como rascunho'}
                 </Button>
                 <Link href="/painel-produtor">
                   <Button type="button" variant="outline" size="lg">

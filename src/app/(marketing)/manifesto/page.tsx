@@ -29,7 +29,7 @@ const PRINCIPLES = [
   {
     no: '04',
     title: 'Pix por padrão. PIX em segundos.',
-    body: 'Pagamento aprovado em ≤30s na maioria dos casos. Se quiser parcelar no cartão, dá. Mas o caminho rápido é o caminho honesto.',
+    body: 'Pagamento aprovado em ≤30s na maioria dos casos. Cartão à vista também rola. Mas o caminho rápido é o caminho honesto.',
   },
   {
     no: '05',
