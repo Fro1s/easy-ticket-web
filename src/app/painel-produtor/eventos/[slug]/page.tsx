@@ -969,7 +969,7 @@ function SellByEmailDialog({
                   }}
                   items={sectors.map((s) => ({
                     value: s.id,
-                    label: `${s.name} — ${(s.priceCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
+                    label: `${s.name} — ${((s.batches?.[0]?.priceCents ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
                   }))}
                 >
                   <SelectTrigger>
@@ -983,7 +983,7 @@ function SellByEmailDialog({
                             className="w-2 h-2 rounded-full inline-block"
                             style={{ backgroundColor: s.colorHex }}
                           />
-                          {s.name} — {(s.priceCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          {s.name} — {((s.batches?.[0]?.priceCents ?? 0) / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </span>
                       </SelectItem>
                     ))}

@@ -243,7 +243,7 @@ function CheckoutContent() {
                     amountCents={finalTotal}
                   />
                 ) : null}
-                {order.payment?.method === 'CARD' ? <CardView redirectUrl={order.payment.redirectUrl} /> : null}
+                {order.payment?.method === 'CARD' ? <CardView redirectUrl={(order.payment.redirectUrl as unknown as string | null) ?? null} /> : null}
 
                 {isManualPix ? (
                   <div className="mt-5 p-4 rounded-[10px] border border-yellow-500/30 bg-yellow-500/[0.06]">

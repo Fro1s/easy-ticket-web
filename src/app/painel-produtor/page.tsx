@@ -196,9 +196,9 @@ function ProducerDashboardView({ userName }: { userName: string }) {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-1">
                               <StatusPill status={e.status} />
-                              {e.kpis.pendingManualOrdersCount > 0 && (
+                              {(e.kpis?.pendingManualOrdersCount ?? 0) > 0 && (
                                 <span className="font-mono text-[10px] tracking-[1.5px] uppercase px-2 py-1 rounded-[3px] bg-yellow-500/15 text-yellow-300">
-                                  {e.kpis.pendingManualOrdersCount} pendente(s)
+                                  {(e.kpis?.pendingManualOrdersCount ?? 0)} pendente(s)
                                 </span>
                               )}
                               <span className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
@@ -219,10 +219,10 @@ function ProducerDashboardView({ userName }: { userName: string }) {
                               Vendidos
                             </div>
                             <div className="font-display text-2xl">
-                              {e.kpis.ticketsSold}
+                              {(e.kpis?.ticketsSold ?? 0)}
                             </div>
                             <div className="font-mono text-[11px] text-accent mt-1">
-                              {fmtBRL(e.kpis.netCents)}
+                              {fmtBRL((e.kpis?.netCents ?? 0))}
                             </div>
                           </div>
                         </div>
