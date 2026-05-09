@@ -7,6 +7,7 @@ import { format as fmtDate } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { RoleGate } from '@/components/role-gate';
+import { useAuth } from '@/lib/auth';
 import { ProducerHeader } from '@/components/producer-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -216,7 +217,10 @@ export default function EditarEventoPage() {
     }
   }
 
-  if (detail && detail.status !== 'DRAFT') {
+  const auth = useAuth();
+  const isAdmin = auth.user?.role === 'ADMIN';
+
+  if (detail && detail.status !== 'DRAFT' && !isAdmin) {
     return (
       <RoleGate allow={['PRODUCER', 'ADMIN']}>
         {(user) => (
