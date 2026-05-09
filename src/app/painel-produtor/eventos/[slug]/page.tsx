@@ -456,7 +456,12 @@ function BatchManager({
 export default function EventoDetailPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
-  const [filter, setFilter] = useState<FilterValue>('TODOS');
+  const [filter, setFilterRaw] = useState<FilterValue>('TODOS');
+  const [page, setPage] = useState(1);
+  const setFilter = (v: FilterValue) => {
+    setFilterRaw(v);
+    setPage(1);
+  };
   const [err, setErr] = useState<string | null>(null);
   const [sellOpen, setSellOpen] = useState(false);
   const [confirmOrderId, setConfirmOrderId] = useState<string | null>(null);
@@ -464,14 +469,18 @@ export default function EventoDetailPage() {
   const ev = useProducerControllerGetEvent(slug);
   const orders = useProducerControllerListOrders(
     slug,
-    filter === 'TODOS'
-      ? {}
-      : {
-          status:
-            ProducerControllerListOrdersStatus[
-              filter as keyof typeof ProducerControllerListOrdersStatus
-            ],
-        },
+    {
+      page,
+      pageSize: 20,
+      ...(filter === 'TODOS'
+        ? {}
+        : {
+            status:
+              ProducerControllerListOrdersStatus[
+                filter as keyof typeof ProducerControllerListOrdersStatus
+              ],
+          }),
+    },
   );
   const publish = useProducerControllerPublishEvent();
   const confirm = useProducerControllerConfirmManualPayment();
@@ -643,7 +652,6 @@ export default function EventoDetailPage() {
                   />
                 )}
 
-                {user.role !== 'STAFF' && (
                 <>
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <h2 className="font-display text-2xl font-bold">Pedidos</h2>
@@ -696,7 +704,9 @@ export default function EventoDetailPage() {
                           </div>
                         </div>
                         <div>
-                          <div className="font-mono text-sm">{fmtBRL(o.totalCents)}</div>
+                          {user.role !== 'STAFF' && (
+                            <div className="font-mono text-sm">{fmtBRL(o.totalCents)}</div>
+                          )}
                           <div className="font-mono text-[10px] text-ink-dim">
                             <span
                               className={cn(
@@ -714,7 +724,7 @@ export default function EventoDetailPage() {
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2 justify-start md:justify-end">
-                          {o.isManualPending && (
+                          {user.role !== 'STAFF' && o.isManualPending && (
                             <Button
                               onClick={() => setConfirmOrderId(o.id)}
                               variant="accent"
@@ -724,7 +734,7 @@ export default function EventoDetailPage() {
                               Marcar pago
                             </Button>
                           )}
-                          {o.status === 'PENDING' && (
+                          {user.role !== 'STAFF' && o.status === 'PENDING' && (
                             <Button
                               onClick={() => handleCancel(o.id)}
                               variant="outline"
@@ -746,8 +756,34 @@ export default function EventoDetailPage() {
                     )}
                   </ul>
                 )}
-                </>
+                {list && list.total > list.pageSize && (
+                  <div className="flex items-center justify-between mt-4 gap-3 flex-wrap">
+                    <div className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
+                      {(list.page - 1) * list.pageSize + 1}
+                      –
+                      {Math.min(list.page * list.pageSize, list.total)} de {list.total}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={list.page <= 1 || orders.isFetching}
+                      >
+                        Anterior
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => p + 1)}
+                        disabled={list.page * list.pageSize >= list.total || orders.isFetching}
+                      >
+                        Próxima
+                      </Button>
+                    </div>
+                  </div>
                 )}
+                </>
               </>
             )}
             </div>

@@ -11,7 +11,6 @@ import { RequireAuth } from '@/components/require-auth';
 import {
   useOrdersControllerFindOne,
   useOrdersControllerCheckout,
-  useOrdersControllerSimulatePayment,
   OrderPaymentInfoMethod,
   type OrderResponse,
 } from '@/generated/api';
@@ -45,7 +44,6 @@ function CheckoutContent() {
 
   const orderQuery = useOrdersControllerFindOne(orderId);
   const checkoutMut = useOrdersControllerCheckout();
-  const simulateMut = useOrdersControllerSimulatePayment();
 
   const order = orderQuery.data?.data;
 
@@ -156,21 +154,6 @@ function CheckoutContent() {
     }
   }
 
-  async function handleSimulate() {
-    setError(null);
-    try {
-      await simulateMut.mutateAsync({ id: orderId });
-      router.push(`/checkout/sucesso/${orderId}`);
-    } catch (err: unknown) {
-      if (isAxiosError(err)) {
-        const data = err.response?.data as { message?: string } | undefined;
-        setError(data?.message ?? 'Falha ao confirmar pagamento.');
-      } else {
-        setError('Erro inesperado.');
-      }
-    }
-  }
-
   return (
     <>
       <CheckoutNav
@@ -232,7 +215,11 @@ function CheckoutContent() {
                   disabled={checkoutMut.isPending}
                   className="mt-6"
                 >
-                  {checkoutMut.isPending ? 'Gerando…' : `Gerar ${METHODS.find((m) => m.id === method)?.label}`}
+                  {checkoutMut.isPending
+                    ? 'Gerando…'
+                    : method === 'PIX'
+                      ? 'Pagar com Pix'
+                      : 'Pagar com cartão'}
                 </Button>
               </>
             ) : (
@@ -257,23 +244,6 @@ function CheckoutContent() {
                   </div>
                 ) : null}
 
-                {!isManualPix && (
-                  <div className="mt-5">
-                    <Button
-                      variant="accent"
-                      size="md"
-                      full
-                      onClick={handleSimulate}
-                      disabled={simulateMut.isPending || timeUp}
-                    >
-                      {simulateMut.isPending
-                        ? 'Confirmando…'
-                        : timeUp
-                          ? 'Expirado'
-                          : 'Simular pagamento (dev)'}
-                    </Button>
-                  </div>
-                )}
               </div>
             )}
 
