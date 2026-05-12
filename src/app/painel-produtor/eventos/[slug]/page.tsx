@@ -656,7 +656,14 @@ export default function EventoDetailPage() {
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <h2 className="font-display text-2xl font-bold">Pedidos</h2>
                   <div className="flex gap-2 flex-wrap">
-                    {FILTERS.map((s) => (
+                    {FILTERS.filter((s) => {
+                      const canSeeAllStatuses =
+                        user.role === 'ADMIN' ||
+                        user.email?.toLowerCase() ===
+                          'leticia.silveira@projetocriancafeliz.org';
+                      if (canSeeAllStatuses) return true;
+                      return s !== 'CANCELLED' && s !== 'EXPIRED';
+                    }).map((s) => (
                       <button
                         key={s}
                         onClick={() => setFilter(s)}
