@@ -202,6 +202,9 @@ export default function EventDetailPage() {
                 const avail = getAvailability(sector, availability?.sectors);
                 const soldOut = avail <= 0;
                 const isSelected = sector.id === selected.id;
+                const tpu = sector.activeBatch?.ticketsPerUnit ?? 1;
+                const isCombo = tpu > 1;
+                const priceCents = sector.activeBatch?.priceCents ?? 0;
                 return (
                   <button
                     key={sector.id}
@@ -221,13 +224,27 @@ export default function EventDetailPage() {
                       style={{ backgroundColor: sector.colorHex }}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="text-[15px] font-semibold truncate">{sector.name}</div>
+                      <div className="text-[15px] font-semibold truncate flex items-center gap-2">
+                        {sector.name}
+                        {isCombo && (
+                          <span className="text-[10px] font-mono uppercase tracking-[1.5px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-[3px]">
+                            Combo {tpu}x
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] text-ink-muted font-mono mt-0.5">
                         {soldOut ? 'ESGOTADO' : `${avail.toLocaleString('pt-BR')} disponíveis`}
                       </div>
                     </div>
-                    <div className="font-display text-[20px] font-bold tracking-[-0.4px]">
-                      {formatBRLFromCents(sector.activeBatch?.priceCents ?? 0)}
+                    <div className="text-right">
+                      <div className="font-display text-[20px] font-bold tracking-[-0.4px]">
+                        {formatBRLFromCents(priceCents)}
+                      </div>
+                      {isCombo && (
+                        <div className="text-[10px] text-ink-muted font-mono">
+                          {formatBRLFromCents(Math.round(priceCents / tpu))} por ingresso
+                        </div>
+                      )}
                     </div>
                     <div
                       className={cn(

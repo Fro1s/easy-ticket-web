@@ -177,6 +177,11 @@ function TicketCardLink({ ticket }: { ticket: MyTicketItem }) {
             />
             {ticket.sector.name}
           </div>
+          {ticket.holderName && (
+            <div className="text-[11px] text-ink-muted mt-1 truncate">
+              {ticket.holderName}
+            </div>
+          )}
         </div>
         <div className="text-[12px] text-ink-muted shrink-0 group-hover:text-accent transition-colors">
           Ver QR →

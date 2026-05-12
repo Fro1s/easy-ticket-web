@@ -35,6 +35,11 @@ import {
   useProducerControllerSell,
 } from '@/generated/api';
 import type { ProducerEventDetail, SellByEmailResponse } from '@/generated/api';
+import {
+  AttendeesForm,
+  attendeesAllValid,
+  type AttendeesValue,
+} from '@/components/attendees-form';
 import { customInstance } from '@/lib/api';
 import {
   ORDER_STATUS_PT,
@@ -76,6 +81,7 @@ type BatchResponse = {
   reserved: number;
   sortOrder: number;
   producerOnly: boolean;
+  ticketsPerUnit: number;
   startsAt: string | null;
   endsAt: string | null;
 };
@@ -88,6 +94,7 @@ type BatchPayload = {
   capacity: number;
   sortOrder: number;
   producerOnly?: boolean;
+  ticketsPerUnit?: number;
   startsAt?: string | null;
   endsAt?: string | null;
 };
@@ -250,6 +257,7 @@ function BatchManager({
   const [capacity, setCapacity] = useState('50');
   const [sortOrder, setSortOrder] = useState('0');
   const [producerOnly, setProducerOnly] = useState(true);
+  const [ticketsPerUnit, setTicketsPerUnit] = useState(1);
   const [err, setErr] = useState<string | null>(null);
 
   const batches = useQuery({
@@ -268,6 +276,7 @@ function BatchManager({
       setCapacity('50');
       setSortOrder('0');
       setProducerOnly(true);
+      setTicketsPerUnit(1);
     },
   });
 
@@ -305,6 +314,7 @@ function BatchManager({
         capacity: capacityNumber,
         sortOrder: Number.isFinite(sortNumber) ? sortNumber : 0,
         producerOnly,
+        ticketsPerUnit,
       });
     } catch (e) {
       setErr(extractErr(e));
@@ -391,6 +401,40 @@ function BatchManager({
           />
           Exclusivo para produtor/admin. Não aparece no checkout público.
         </label>
+        <div className="md:col-span-5 flex items-center gap-2 flex-wrap">
+          <span className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
+            Ingressos por unidade
+          </span>
+          {[1, 5, 10].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setTicketsPerUnit(n)}
+              className={cn(
+                'px-3 py-1 rounded-[6px] border text-xs',
+                ticketsPerUnit === n
+                  ? 'bg-accent text-accent-foreground border-accent'
+                  : 'border-border/50 text-ink-dim',
+              )}
+            >
+              {n === 1 ? 'Avulso' : `Combo ${n}x`}
+            </button>
+          ))}
+          <Input
+            type="number"
+            min={1}
+            value={ticketsPerUnit}
+            onChange={(e) =>
+              setTicketsPerUnit(Math.max(1, Number(e.target.value) || 1))
+            }
+            className="w-20"
+          />
+          {ticketsPerUnit > 1 && (
+            <span className="text-[11px] text-ink-muted">
+              Cada venda emite {ticketsPerUnit} ingressos. Capacidade acima conta combos.
+            </span>
+          )}
+        </div>
       </form>
 
       {err && <div className="text-red-400 text-sm mb-3">{err}</div>}
@@ -404,6 +448,11 @@ function BatchManager({
             <div>
               <div className="font-medium flex items-center gap-2">
                 {batch.name}
+                {batch.ticketsPerUnit > 1 && (
+                  <span className="inline-flex items-center gap-1 rounded-[3px] bg-accent/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[1.5px] text-accent">
+                    Combo {batch.ticketsPerUnit}x
+                  </span>
+                )}
                 {batch.producerOnly && (
                   <span className="inline-flex items-center gap-1 rounded-[3px] bg-accent/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[1.5px] text-accent">
                     <EyeOff className="h-3 w-3" />
@@ -656,14 +705,7 @@ export default function EventoDetailPage() {
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <h2 className="font-display text-2xl font-bold">Pedidos</h2>
                   <div className="flex gap-2 flex-wrap">
-                    {FILTERS.filter((s) => {
-                      const canSeeAllStatuses =
-                        user.role === 'ADMIN' ||
-                        user.email?.toLowerCase() ===
-                          'leticia.silveira@projetocriancafeliz.org';
-                      if (canSeeAllStatuses) return true;
-                      return s !== 'CANCELLED' && s !== 'EXPIRED';
-                    }).map((s) => (
+                    {FILTERS.map((s) => (
                       <button
                         key={s}
                         onClick={() => setFilter(s)}
@@ -821,6 +863,7 @@ function SellByEmailDialog({
   const [batchId, setBatchId] = useState('');
   const [qty, setQty] = useState(1);
   const [markPaid, setMarkPaid] = useState(true);
+  const [attendees, setAttendees] = useState<AttendeesValue>([]);
   const [result, setResult] = useState<SellByEmailResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -830,8 +873,14 @@ function SellByEmailDialog({
     queryFn: () => listBatches(event.id, sectorId),
     enabled: !!event.id && !!sectorId,
   });
-  const batchItems = batches.data?.data.items ?? [];
+  const batchItems = (batches.data?.data.items ?? []).filter(
+    (b) => b.priceCents > 0,
+  );
   const selectedBatch = batchItems.find((b) => b.id === batchId) ?? batchItems[0];
+  const ticketsPerUnit = selectedBatch?.ticketsPerUnit ?? 1;
+  const expectedAttendees = ticketsPerUnit > 1 ? qty * ticketsPerUnit : 0;
+  const attendeesValid =
+    expectedAttendees === 0 || attendeesAllValid(attendees, expectedAttendees);
   const total = selectedBatch ? (selectedBatch.priceCents * qty) / 100 : 0;
   const remaining = selectedBatch
     ? selectedBatch.capacity - selectedBatch.sold - selectedBatch.reserved
@@ -856,6 +905,13 @@ function SellByEmailDialog({
           qty,
           buyerName: buyerName.trim() || undefined,
           markPaid,
+          attendees:
+            expectedAttendees > 0
+              ? attendees.map((a) => ({
+                  name: a.name.trim(),
+                  email: a.email.trim() || null,
+                }))
+              : undefined,
         },
       });
       setResult(res.data);
@@ -873,6 +929,7 @@ function SellByEmailDialog({
     setBuyerName('');
     setBatchId('');
     setQty(1);
+    setAttendees([]);
     setErr(null);
   }
 
@@ -1081,6 +1138,24 @@ function SellByEmailDialog({
               </span>
             </div>
 
+            {expectedAttendees > 0 && (
+              <div className="border border-border/50 rounded-[6px] p-3 bg-card/40">
+                <div className="text-xs font-mono uppercase tracking-[1.5px] mb-2 text-ink-dim">
+                  Identificar ingressos do combo ({expectedAttendees} no total)
+                </div>
+                <AttendeesForm
+                  expectedCount={expectedAttendees}
+                  value={attendees}
+                  onChange={setAttendees}
+                  defaultFirst={
+                    buyerName.trim() && email.trim()
+                      ? { name: buyerName.trim(), email: email.trim() }
+                      : undefined
+                  }
+                />
+              </div>
+            )}
+
             <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -1106,7 +1181,11 @@ function SellByEmailDialog({
               >
                 Cancelar
               </Button>
-              <Button type="submit" variant="accent" disabled={sell.isPending}>
+              <Button
+                type="submit"
+                variant="accent"
+                disabled={sell.isPending || !attendeesValid}
+              >
                 {sell.isPending ? 'Enviando…' : 'Vender e enviar'}
               </Button>
             </DialogFooter>

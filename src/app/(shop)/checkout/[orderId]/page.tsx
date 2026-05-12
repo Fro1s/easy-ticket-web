@@ -11,12 +11,19 @@ import { RequireAuth } from '@/components/require-auth';
 import {
   useOrdersControllerFindOne,
   useOrdersControllerCheckout,
+  useOrdersControllerUpdateAttendees,
   OrderPaymentInfoMethod,
   type OrderResponse,
 } from '@/generated/api';
 import { formatBRLFromCents, formatEventDate, formatTime } from '@/lib/format';
 import { useOrderStream } from '@/lib/use-order-stream';
+import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
+import {
+  AttendeesForm,
+  attendeesAllValid,
+  type AttendeesValue,
+} from '@/components/attendees-form';
 
 type Method = keyof typeof OrderPaymentInfoMethod;
 
@@ -44,11 +51,45 @@ function CheckoutContent() {
 
   const orderQuery = useOrdersControllerFindOne(orderId);
   const checkoutMut = useOrdersControllerCheckout();
+  const attendeesMut = useOrdersControllerUpdateAttendees();
+  const { user } = useAuth();
 
   const order = orderQuery.data?.data;
 
   const [method, setMethod] = React.useState<Method>('PIX');
   const [error, setError] = React.useState<string | null>(null);
+  const [attendeesByItem, setAttendeesByItem] = React.useState<
+    Record<string, AttendeesValue>
+  >({});
+
+  const comboItems = React.useMemo(
+    () => (order?.items ?? []).filter((i) => (i.ticketsPerUnit ?? 1) > 1),
+    [order],
+  );
+
+  // Hydrate from server values (or defaults) when order or comboItems change.
+  React.useEffect(() => {
+    if (!order) return;
+    setAttendeesByItem((prev) => {
+      const next = { ...prev };
+      for (const i of comboItems) {
+        if (next[i.id]) continue;
+        const existing = (i.attendees ?? []).map((a) => ({
+          name: a.name ?? '',
+          email: a.email ?? '',
+        }));
+        next[i.id] = existing;
+      }
+      return next;
+    });
+  }, [order, comboItems]);
+
+  const attendeesValid = comboItems.every((i) =>
+    attendeesAllValid(
+      attendeesByItem[i.id] ?? [],
+      i.qty * (i.ticketsPerUnit ?? 1),
+    ),
+  );
 
   // Live status updates via SSE — server pushes when producer/webhook flips
   // status to PAID/EXPIRED, the hook invalidates React Query and the redirect
@@ -141,6 +182,20 @@ function CheckoutContent() {
   async function handleConfirm() {
     setError(null);
     try {
+      if (comboItems.length > 0) {
+        await attendeesMut.mutateAsync({
+          id: orderId,
+          data: {
+            items: comboItems.map((i) => ({
+              orderItemId: i.id,
+              attendees: (attendeesByItem[i.id] ?? []).map((a) => ({
+                name: a.name.trim(),
+                email: a.email.trim() || null,
+              })),
+            })),
+          },
+        });
+      }
       await checkoutMut.mutateAsync({ id: orderId, data: { method } });
       // refetch to get the payment info
       await orderQuery.refetch();
@@ -207,15 +262,50 @@ function CheckoutContent() {
 
             {!checkoutStarted ? (
               <>
+                {comboItems.length > 0 && (
+                  <section className="mt-6 border-t border-border/40 pt-6">
+                    <h2 className="font-display text-[20px] font-bold tracking-[-0.3px] mb-1">
+                      Identificar ingressos
+                    </h2>
+                    <p className="text-[13px] text-ink-muted mb-4">
+                      Combo emite um ingresso por convidado. Email é opcional —
+                      se preenchido, mandamos o ingresso direto pra pessoa.
+                    </p>
+                    {comboItems.map((item) => (
+                      <div key={item.id} className="mb-6">
+                        <div className="text-[12px] font-mono text-ink-muted mb-2 uppercase tracking-[1.5px]">
+                          {item.sectorName} · Combo {item.ticketsPerUnit ?? 1}x
+                          {item.qty > 1 ? ` · ${item.qty} unidades` : ''}
+                        </div>
+                        <AttendeesForm
+                          expectedCount={item.qty * (item.ticketsPerUnit ?? 1)}
+                          value={attendeesByItem[item.id] ?? []}
+                          onChange={(v) =>
+                            setAttendeesByItem((s) => ({ ...s, [item.id]: v }))
+                          }
+                          defaultFirst={
+                            user
+                              ? { name: user.name ?? '', email: user.email }
+                              : undefined
+                          }
+                        />
+                      </div>
+                    ))}
+                  </section>
+                )}
                 <Button
                   variant="accent"
                   size="lg"
                   full
                   onClick={handleConfirm}
-                  disabled={checkoutMut.isPending}
+                  disabled={
+                    checkoutMut.isPending ||
+                    attendeesMut.isPending ||
+                    (comboItems.length > 0 && !attendeesValid)
+                  }
                   className="mt-6"
                 >
-                  {checkoutMut.isPending
+                  {checkoutMut.isPending || attendeesMut.isPending
                     ? 'Gerando…'
                     : method === 'PIX'
                       ? 'Pagar com Pix'

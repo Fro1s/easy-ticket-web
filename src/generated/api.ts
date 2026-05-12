@@ -86,6 +86,10 @@ export interface ConsumeMagicLinkDto {
   token: string;
 }
 
+export interface RefreshDto {
+  refreshToken: string;
+}
+
 export interface ClaimDto {
   /** Claim token from sell-by-email message */
   token: string;
@@ -149,6 +153,7 @@ export interface EventBatchInfo {
   id: string;
   name: string;
   priceCents: number;
+  ticketsPerUnit: number;
   /** @nullable */
   startsAt: string | null;
   /** @nullable */
@@ -291,6 +296,10 @@ export interface MyTicketItem {
   /** @nullable */
   usedAt: string | null;
   createdAt: string;
+  /** @nullable */
+  holderName: string | null;
+  /** @nullable */
+  holderEmail: string | null;
   event: MyTicketEvent;
   sector: MyTicketSector;
 }
@@ -390,6 +399,12 @@ export interface OrderEventResponse {
   paymentProvider: OrderEventResponsePaymentProvider;
 }
 
+export type OrderItemResponseAttendeesItem = {
+  name?: string;
+  /** @nullable */
+  email?: string | null;
+};
+
 export interface OrderItemResponse {
   id: string;
   sectorId: string;
@@ -397,6 +412,9 @@ export interface OrderItemResponse {
   sectorColorHex: string;
   qty: number;
   priceCents: number;
+  ticketsPerUnit: number;
+  /** @nullable */
+  attendees: OrderItemResponseAttendeesItem[] | null;
 }
 
 export type OrderPaymentInfoMethod = typeof OrderPaymentInfoMethod[keyof typeof OrderPaymentInfoMethod];
@@ -406,12 +424,6 @@ export const OrderPaymentInfoMethod = {
   PIX: 'PIX',
   CARD: 'CARD',
 } as const;
-
-/**
- * Redirect URL for hosted-checkout flows (card via AbacatePay). Null for inline PIX.
- * @nullable
- */
-export type OrderPaymentInfoRedirectUrl = { [key: string]: unknown } | null;
 
 export interface OrderPaymentInfo {
   provider: string;
@@ -426,7 +438,7 @@ export interface OrderPaymentInfo {
      * Redirect URL for hosted-checkout flows (card via AbacatePay). Null for inline PIX.
      * @nullable
      */
-  redirectUrl: OrderPaymentInfoRedirectUrl;
+  redirectUrl: string | null;
 }
 
 export type OrderResponseStatus = typeof OrderResponseStatus[keyof typeof OrderResponseStatus];
@@ -489,6 +501,25 @@ export interface OrderResponse {
   processingFeeMethod: OrderResponseProcessingFeeMethod;
   competitorTotalCents: number;
   savingsCents: number;
+}
+
+export interface AttendeeDto {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     */
+  name: string;
+  /** @nullable */
+  email?: string | null;
+}
+
+export interface OrderItemAttendeesDto {
+  orderItemId: string;
+  attendees: AttendeeDto[];
+}
+
+export interface UpdateOrderAttendeesDto {
+  items: OrderItemAttendeesDto[];
 }
 
 export type CheckoutOrderDtoMethod = typeof CheckoutOrderDtoMethod[keyof typeof CheckoutOrderDtoMethod];
@@ -646,6 +677,8 @@ export interface CreateBatchDto {
   capacity: number;
   sortOrder: number;
   producerOnly?: boolean;
+  /** @minimum 1 */
+  ticketsPerUnit?: number;
   startsAt?: string;
   endsAt?: string;
 }
@@ -715,6 +748,7 @@ export interface ProducerEventBatchSummary {
   id: string;
   name: string;
   priceCents: number;
+  ticketsPerUnit: number;
   capacity: number;
   sold: number;
   reserved: number;
@@ -916,6 +950,8 @@ export interface SellByEmailDto {
   buyerName?: string;
   /** When true (default), order is created and marked PAID immediately. */
   markPaid?: boolean;
+  /** Required when batch is a combo (ticketsPerUnit > 1). One entry per emitted ticket (qty × ticketsPerUnit). */
+  attendees?: AttendeeDto[];
 }
 
 export interface SellByEmailResponse {
@@ -988,6 +1024,7 @@ export interface BatchResponse {
   reserved: number;
   sortOrder: number;
   producerOnly: boolean;
+  ticketsPerUnit: number;
   /** @nullable */
   startsAt: string | null;
   /** @nullable */
@@ -1014,6 +1051,8 @@ export interface UpdateBatchDto {
   capacity?: number;
   sortOrder?: number;
   producerOnly?: boolean;
+  /** @minimum 1 */
+  ticketsPerUnit?: number;
   /** @nullable */
   startsAt?: UpdateBatchDtoStartsAt;
   /** @nullable */
@@ -1688,6 +1727,89 @@ export const useAuthControllerConsumeMagicLink = <TError = unknown,
         TContext
       > => {
       return useMutation(getAuthControllerConsumeMagicLinkMutationOptions(options), queryClient);
+    }
+
+/**
+ * @summary Exchange a refresh token for a new session
+ */
+export type authControllerRefreshResponse200 = {
+  data: AuthResponse
+  status: 200
+}
+
+export type authControllerRefreshResponseSuccess = (authControllerRefreshResponse200) & {
+  headers: Headers;
+};
+;
+
+export type authControllerRefreshResponse = (authControllerRefreshResponseSuccess)
+
+export const getAuthControllerRefreshUrl = () => {
+
+
+
+
+  return `/api/v1/auth/refresh`
+}
+
+export const authControllerRefresh = async (refreshDto: RefreshDto, options?: RequestInit): Promise<authControllerRefreshResponse> => {
+
+  return customInstance<authControllerRefreshResponse>(getAuthControllerRefreshUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      refreshDto,)
+  }
+);}
+
+
+
+
+export const getAuthControllerRefreshMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError,{data: RefreshDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError,{data: RefreshDto}, TContext> => {
+
+const mutationKey = ['authControllerRefresh'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authControllerRefresh>>, {data: RefreshDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  authControllerRefresh(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthControllerRefreshMutationResult = NonNullable<Awaited<ReturnType<typeof authControllerRefresh>>>
+    export type AuthControllerRefreshMutationBody = RefreshDto
+    export type AuthControllerRefreshMutationError = unknown
+
+    /**
+ * @summary Exchange a refresh token for a new session
+ */
+export const useAuthControllerRefresh = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authControllerRefresh>>, TError,{data: RefreshDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof authControllerRefresh>>,
+        TError,
+        {data: RefreshDto},
+        TContext
+      > => {
+      return useMutation(getAuthControllerRefreshMutationOptions(options), queryClient);
     }
 
 /**
@@ -2780,6 +2902,90 @@ export function useOrdersControllerFindOne<TData = Awaited<ReturnType<typeof ord
 
 
 
+
+/**
+ * @summary Set holder name/email for each ticket in combo items before checkout
+ */
+export type ordersControllerUpdateAttendeesResponse200 = {
+  data: OrderResponse
+  status: 200
+}
+
+export type ordersControllerUpdateAttendeesResponseSuccess = (ordersControllerUpdateAttendeesResponse200) & {
+  headers: Headers;
+};
+;
+
+export type ordersControllerUpdateAttendeesResponse = (ordersControllerUpdateAttendeesResponseSuccess)
+
+export const getOrdersControllerUpdateAttendeesUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/orders/${id}/attendees`
+}
+
+export const ordersControllerUpdateAttendees = async (id: string,
+    updateOrderAttendeesDto: UpdateOrderAttendeesDto, options?: RequestInit): Promise<ordersControllerUpdateAttendeesResponse> => {
+
+  return customInstance<ordersControllerUpdateAttendeesResponse>(getOrdersControllerUpdateAttendeesUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      updateOrderAttendeesDto,)
+  }
+);}
+
+
+
+
+export const getOrdersControllerUpdateAttendeesMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ordersControllerUpdateAttendees>>, TError,{id: string;data: UpdateOrderAttendeesDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof ordersControllerUpdateAttendees>>, TError,{id: string;data: UpdateOrderAttendeesDto}, TContext> => {
+
+const mutationKey = ['ordersControllerUpdateAttendees'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ordersControllerUpdateAttendees>>, {id: string;data: UpdateOrderAttendeesDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  ordersControllerUpdateAttendees(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OrdersControllerUpdateAttendeesMutationResult = NonNullable<Awaited<ReturnType<typeof ordersControllerUpdateAttendees>>>
+    export type OrdersControllerUpdateAttendeesMutationBody = UpdateOrderAttendeesDto
+    export type OrdersControllerUpdateAttendeesMutationError = unknown
+
+    /**
+ * @summary Set holder name/email for each ticket in combo items before checkout
+ */
+export const useOrdersControllerUpdateAttendees = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ordersControllerUpdateAttendees>>, TError,{id: string;data: UpdateOrderAttendeesDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof ordersControllerUpdateAttendees>>,
+        TError,
+        {id: string;data: UpdateOrderAttendeesDto},
+        TContext
+      > => {
+      return useMutation(getOrdersControllerUpdateAttendeesMutationOptions(options), queryClient);
+    }
 
 /**
  * @summary Choose a payment method and create the payment session (Pix QR / card token)
