@@ -941,7 +941,7 @@ function SellByEmailDialog({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="font-mono text-[10px] tracking-[2px] uppercase text-accent mb-1">
             VENDA DIRETA
@@ -1143,18 +1143,16 @@ function SellByEmailDialog({
                 <div className="text-xs font-mono uppercase tracking-[1.5px] mb-2 text-ink-dim">
                   Identificar ingressos do combo ({expectedAttendees} no total)
                 </div>
-                <div className="max-h-[40vh] overflow-y-auto pr-1 -mr-1">
-                  <AttendeesForm
-                    expectedCount={expectedAttendees}
-                    value={attendees}
-                    onChange={setAttendees}
-                    defaultFirst={
-                      buyerName.trim() && email.trim()
-                        ? { name: buyerName.trim(), email: email.trim() }
-                        : undefined
-                    }
-                  />
-                </div>
+                <AttendeesForm
+                  expectedCount={expectedAttendees}
+                  value={attendees}
+                  onChange={setAttendees}
+                  defaultFirst={
+                    buyerName.trim() && email.trim()
+                      ? { name: buyerName.trim(), email: email.trim() }
+                      : undefined
+                  }
+                />
               </div>
             )}
 
