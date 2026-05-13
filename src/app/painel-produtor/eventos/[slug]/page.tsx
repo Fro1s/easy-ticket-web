@@ -1143,16 +1143,18 @@ function SellByEmailDialog({
                 <div className="text-xs font-mono uppercase tracking-[1.5px] mb-2 text-ink-dim">
                   Identificar ingressos do combo ({expectedAttendees} no total)
                 </div>
-                <AttendeesForm
-                  expectedCount={expectedAttendees}
-                  value={attendees}
-                  onChange={setAttendees}
-                  defaultFirst={
-                    buyerName.trim() && email.trim()
-                      ? { name: buyerName.trim(), email: email.trim() }
-                      : undefined
-                  }
-                />
+                <div className="max-h-[40vh] overflow-y-auto pr-1 -mr-1">
+                  <AttendeesForm
+                    expectedCount={expectedAttendees}
+                    value={attendees}
+                    onChange={setAttendees}
+                    defaultFirst={
+                      buyerName.trim() && email.trim()
+                        ? { name: buyerName.trim(), email: email.trim() }
+                        : undefined
+                    }
+                  />
+                </div>
               </div>
             )}
 
