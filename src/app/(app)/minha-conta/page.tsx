@@ -13,6 +13,7 @@ import {
 } from '@/generated/api';
 import { clearSession } from '@/lib/auth';
 import { formatBRLFromCents, formatEventDate } from '@/lib/format';
+import { posterStyle } from '@/lib/poster';
 import { cn } from '@/lib/utils';
 
 const ORDER_STATUS_LABEL: Record<string, { label: string; tone: 'ok' | 'warn' | 'mute' }> = {
@@ -143,7 +144,7 @@ function ProfileContent() {
                     >
                       <div
                         className="w-12 h-12 rounded-[8px] shrink-0"
-                        style={{ background: o.event.posterUrl || 'var(--bg-input)' }}
+                        style={posterStyle(o.event.posterUrl)}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-[14px] font-semibold truncate">
