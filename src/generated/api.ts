@@ -753,6 +753,7 @@ export interface ProducerEventBatchSummary {
   sold: number;
   reserved: number;
   sortOrder: number;
+  isActive: boolean;
   /** @nullable */
   startsAt: string | null;
   /** @nullable */
@@ -1024,6 +1025,7 @@ export interface BatchResponse {
   reserved: number;
   sortOrder: number;
   producerOnly: boolean;
+  isActive: boolean;
   ticketsPerUnit: number;
   /** @nullable */
   startsAt: string | null;
@@ -1051,6 +1053,7 @@ export interface UpdateBatchDto {
   capacity?: number;
   sortOrder?: number;
   producerOnly?: boolean;
+  isActive?: boolean;
   /** @minimum 1 */
   ticketsPerUnit?: number;
   /** @nullable */

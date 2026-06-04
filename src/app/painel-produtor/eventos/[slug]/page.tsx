@@ -33,6 +33,7 @@ import {
   useProducerControllerListOrders,
   useProducerControllerPublishEvent,
   useProducerControllerSell,
+  useProducerControllerUpdateBatch,
 } from '@/generated/api';
 import type { ProducerEventDetail, SellByEmailResponse } from '@/generated/api';
 import {
@@ -81,6 +82,7 @@ type BatchResponse = {
   reserved: number;
   sortOrder: number;
   producerOnly: boolean;
+  isActive: boolean;
   ticketsPerUnit: number;
   startsAt: string | null;
   endsAt: string | null;
@@ -297,6 +299,8 @@ function BatchManager({
     },
   });
 
+  const toggleActiveMut = useProducerControllerUpdateBatch();
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
@@ -443,7 +447,10 @@ function BatchManager({
         {items.map((batch) => (
           <div
             key={batch.id}
-            className="grid grid-cols-1 md:grid-cols-[1fr_120px_120px_120px_auto] gap-3 items-center rounded-[4px] border border-border/40 bg-ink-deep/40 p-3"
+            className={cn(
+              "grid grid-cols-1 md:grid-cols-[1fr_120px_120px_120px_auto_auto] gap-3 items-center rounded-[4px] border border-border/40 bg-ink-deep/40 p-3",
+              !batch.isActive && "opacity-50",
+            )}
           >
             <div>
               <div className="font-medium flex items-center gap-2">
@@ -480,6 +487,28 @@ function BatchManager({
               />
               Exclusivo
             </label>
+            <button
+              type="button"
+              onClick={() =>
+                toggleActiveMut.mutate(
+                  {
+                    eventId: event.id,
+                    sectorId,
+                    batchId: batch.id,
+                    data: { isActive: !batch.isActive },
+                  },
+                  {
+                    onSuccess: () => {
+                      batches.refetch();
+                      onChanged();
+                    },
+                  },
+                )
+              }
+              className="font-mono text-[11px] uppercase tracking-widest px-2 py-1 rounded-[4px] border border-border hover:border-foreground transition-colors"
+            >
+              {batch.isActive ? 'Desativar' : 'Ativar'}
+            </button>
             <Button
               type="button"
               variant="ghost"
