@@ -561,7 +561,7 @@ export default function NovoEventoPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">URL do Poster *</Label>
+                <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">URL da imagem ou gradiente CSS *</Label>
                 <Input
                   value={posterUrl}
                   onChange={(e) => setPosterUrl(e.target.value)}
@@ -569,6 +569,7 @@ export default function NovoEventoPage() {
                   maxLength={500}
                   required
                 />
+                <p className="text-xs text-ink-dim">Cole o link de uma imagem (https://…) ou um gradiente CSS.</p>
               </div>
 
               <div className="space-y-2">
