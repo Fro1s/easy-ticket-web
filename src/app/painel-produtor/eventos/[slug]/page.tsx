@@ -755,11 +755,26 @@ export default function EventoDetailPage() {
                   />
                 )}
 
-                <Tabs defaultValue="lotes" className="mt-8">
-                  <TabsList>
-                    <TabsTrigger value="lotes">Lotes</TabsTrigger>
-                    <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
-                    <TabsTrigger value="validar">Buscar / Validar</TabsTrigger>
+                <Tabs defaultValue="lotes" className="mt-10">
+                  <TabsList className="h-auto w-full justify-start gap-1.5 rounded-[10px] border border-border/50 bg-card/40 p-1.5">
+                    <TabsTrigger
+                      value="lotes"
+                      className="flex-none rounded-[7px] px-5 py-2.5 text-[15px] font-semibold text-ink-muted data-active:bg-accent data-active:text-accent-foreground data-active:shadow-sm"
+                    >
+                      Lotes
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="pedidos"
+                      className="flex-none rounded-[7px] px-5 py-2.5 text-[15px] font-semibold text-ink-muted data-active:bg-accent data-active:text-accent-foreground data-active:shadow-sm"
+                    >
+                      Pedidos
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="validar"
+                      className="flex-none rounded-[7px] px-5 py-2.5 text-[15px] font-semibold text-ink-muted data-active:bg-accent data-active:text-accent-foreground data-active:shadow-sm"
+                    >
+                      Buscar / Validar
+                    </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="lotes">
