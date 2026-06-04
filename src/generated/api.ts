@@ -1033,6 +1033,11 @@ export interface ConfirmManualPaymentDto {
   reference?: string;
 }
 
+export interface ResendEmailResponse {
+  /** Number of emails dispatched */
+  sent: number;
+}
+
 export type CancelOrderResponseStatus = typeof CancelOrderResponseStatus[keyof typeof CancelOrderResponseStatus];
 
 
@@ -4401,6 +4406,88 @@ export const useProducerControllerConfirmManualPayment = <TError = unknown,
         TContext
       > => {
       return useMutation(getProducerControllerConfirmManualPaymentMutationOptions(options), queryClient);
+    }
+
+/**
+ * @summary Resend the ticket email(s) for a paid order
+ */
+export type producerControllerResendEmailResponse200 = {
+  data: ResendEmailResponse
+  status: 200
+}
+
+export type producerControllerResendEmailResponseSuccess = (producerControllerResendEmailResponse200) & {
+  headers: Headers;
+};
+;
+
+export type producerControllerResendEmailResponse = (producerControllerResendEmailResponseSuccess)
+
+export const getProducerControllerResendEmailUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/producer/orders/${id}/resend-email`
+}
+
+export const producerControllerResendEmail = async (id: string, options?: RequestInit): Promise<producerControllerResendEmailResponse> => {
+
+  return customInstance<producerControllerResendEmailResponse>(getProducerControllerResendEmailUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getProducerControllerResendEmailMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof producerControllerResendEmail>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof producerControllerResendEmail>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['producerControllerResendEmail'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof producerControllerResendEmail>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  producerControllerResendEmail(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProducerControllerResendEmailMutationResult = NonNullable<Awaited<ReturnType<typeof producerControllerResendEmail>>>
+
+    export type ProducerControllerResendEmailMutationError = unknown
+
+    /**
+ * @summary Resend the ticket email(s) for a paid order
+ */
+export const useProducerControllerResendEmail = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof producerControllerResendEmail>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof producerControllerResendEmail>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getProducerControllerResendEmailMutationOptions(options), queryClient);
     }
 
 /**

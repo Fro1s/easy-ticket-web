@@ -32,6 +32,7 @@ import {
   useProducerControllerGetEvent,
   useProducerControllerListOrders,
   useProducerControllerPublishEvent,
+  useProducerControllerResendEmail,
   useProducerControllerSearchAttendees,
   useProducerControllerSell,
   useProducerControllerUpdateBatch,
@@ -545,6 +546,7 @@ export default function EventoDetailPage() {
   const [sellOpen, setSellOpen] = useState(false);
   const [confirmOrderId, setConfirmOrderId] = useState<string | null>(null);
   const [attendeeQuery, setAttendeeQuery] = useState('');
+  const [resendMsg, setResendMsg] = useState<{ id: string; text: string; ok: boolean } | null>(null);
 
   const ev = useProducerControllerGetEvent(slug);
   const orders = useProducerControllerListOrders(
@@ -571,6 +573,8 @@ export default function EventoDetailPage() {
       ev.refetch();
     },
   });
+
+  const resendEmail = useProducerControllerResendEmail();
 
   const attendeesRes = useProducerControllerSearchAttendees(
     slug,
@@ -925,6 +929,34 @@ export default function EventoDetailPage() {
                               <XCircle className="w-4 h-4" />
                               Cancelar
                             </Button>
+                          )}
+                          {user.role !== 'STAFF' && o.status === 'PAID' && (
+                            <div className="flex flex-col items-end gap-1">
+                              <button
+                                type="button"
+                                disabled={resendEmail.isPending && resendMsg?.id === o.id}
+                                onClick={() => {
+                                  setResendMsg(null);
+                                  resendEmail.mutate(
+                                    { id: o.id },
+                                    {
+                                      onSuccess: () =>
+                                        setResendMsg({ id: o.id, text: 'E-mail reenviado!', ok: true }),
+                                      onError: () =>
+                                        setResendMsg({ id: o.id, text: 'Falha ao reenviar.', ok: false }),
+                                    },
+                                  );
+                                }}
+                                className="font-mono text-[11px] uppercase tracking-widest px-3 py-1.5 rounded-[4px] border border-border hover:border-foreground transition-colors disabled:opacity-50"
+                              >
+                                {resendEmail.isPending && resendMsg?.id === o.id ? 'Enviando…' : 'Reenviar e-mail'}
+                              </button>
+                              {resendMsg?.id === o.id && (
+                                <span className={cn('font-mono text-[10px]', resendMsg.ok ? 'text-accent' : 'text-red-400')}>
+                                  {resendMsg.text}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </li>
