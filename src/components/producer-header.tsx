@@ -10,6 +10,7 @@ import {
   Settings,
   CalendarPlus,
   LogOut,
+  Users,
 } from 'lucide-react';
 import { BrandMark } from '@/components/brand-mark';
 import { useAuth, clearSession } from '@/lib/auth';
@@ -31,6 +32,7 @@ const PRODUCER_LINKS: LinkDef[] = [
 
 const ADMIN_LINKS: LinkDef[] = [
   { href: '/admin', label: 'Visão geral', icon: LayoutDashboard, roles: ['ADMIN'] },
+  { href: '/admin/produtores', label: 'Produtores', icon: Users, roles: ['ADMIN'] },
   { href: '/painel-produtor/eventos/novo', label: 'Novo evento', icon: CalendarPlus, roles: ['PRODUCER', 'ADMIN'] },
 ];
 
