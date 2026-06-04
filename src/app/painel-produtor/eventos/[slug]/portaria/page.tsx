@@ -302,10 +302,13 @@ export default function PortariaPage() {
   const [sessionCount, setSessionCount] = useState(0);
   const [isOffline, setIsOffline] = useState(false);
 
-  const { data: eventRes } = useProducerControllerGetEvent(slug);
+  const { data: eventRes, refetch: refetchEvent } = useProducerControllerGetEvent(slug);
   const totalTickets =
     (eventRes as { data?: { kpis?: { ticketsSold?: number } } })?.data?.kpis
       ?.ticketsSold ?? '?';
+  const validatedCount =
+    (eventRes as { data?: { kpis?: { ticketsValidated?: number } } })?.data?.kpis
+      ?.ticketsValidated ?? 0;
 
   const validateMutation = useMutation({
     mutationFn: (qrToken: string) =>
@@ -366,6 +369,7 @@ export default function PortariaPage() {
       setIsOffline(false);
       const t = res.data.ticket!;
       setSessionCount((c) => c + 1);
+      void refetchEvent();
       setFeedback({
         kind: 'success',
         shortCode: t.shortCode,
@@ -435,7 +439,7 @@ export default function PortariaPage() {
                 </span>
               )}
               <span className="font-mono text-sm text-accent font-medium">
-                {sessionCount} / {totalTickets} validados
+                {validatedCount} / {totalTickets} validados
               </span>
             </div>
           </div>

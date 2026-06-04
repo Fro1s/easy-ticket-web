@@ -610,6 +610,7 @@ export interface ProducerEventKpis {
   platformFeeCents: number;
   netCents: number;
   pendingManualOrdersCount: number;
+  ticketsValidated: number;
 }
 
 export type ProducerEventSummaryCategory = typeof ProducerEventSummaryCategory[keyof typeof ProducerEventSummaryCategory];
