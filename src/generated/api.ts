@@ -1149,6 +1149,48 @@ export interface SharedTicketResponse {
   sector: SharedTicketSector;
 }
 
+export interface AdminProducerUser {
+  id: string;
+  /** @nullable */
+  name: string | null;
+  email: string;
+  createdAt: string;
+}
+
+export interface AdminProducerItem {
+  id: string;
+  name: string;
+  /** @nullable */
+  cnpj: string | null;
+  eventCount: number;
+  users: AdminProducerUser[];
+}
+
+export interface AdminProducersResponse {
+  items: AdminProducerItem[];
+}
+
+export interface CreateProducerDto {
+  name: string;
+  cnpj?: string;
+}
+
+export interface CreateProducerUserDto {
+  name: string;
+  email: string;
+  /** @minLength 8 */
+  password: string;
+}
+
+export interface ReassignEventDto {
+  producerId: string;
+}
+
+export interface ReassignEventResult {
+  id: string;
+  producerId: string;
+}
+
 export type EventsControllerListParams = {
 category?: EventsControllerListCategory;
 city?: string;
@@ -5059,3 +5101,373 @@ export function useTicketsControllerShare<TData = Awaited<ReturnType<typeof tick
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+
+
+
+
+
+
+/**
+ * @summary List organizations with their logins and event counts
+ */
+export type adminControllerListProducersResponse200 = {
+  data: AdminProducersResponse
+  status: 200
+}
+
+export type adminControllerListProducersResponseSuccess = (adminControllerListProducersResponse200) & {
+  headers: Headers;
+};
+;
+
+export type adminControllerListProducersResponse = (adminControllerListProducersResponseSuccess)
+
+export const getAdminControllerListProducersUrl = () => {
+
+
+
+
+  return `/api/v1/admin/producers`
+}
+
+export const adminControllerListProducers = async ( options?: RequestInit): Promise<adminControllerListProducersResponse> => {
+
+  return customInstance<adminControllerListProducersResponse>(getAdminControllerListProducersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdminControllerListProducersQueryKey = () => {
+    return [
+    `/api/v1/admin/producers`
+    ] as const;
+    }
+
+
+export const getAdminControllerListProducersQueryOptions = <TData = Awaited<ReturnType<typeof adminControllerListProducers>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminControllerListProducers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminControllerListProducersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminControllerListProducers>>> = ({ signal }) => adminControllerListProducers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminControllerListProducers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AdminControllerListProducersQueryResult = NonNullable<Awaited<ReturnType<typeof adminControllerListProducers>>>
+export type AdminControllerListProducersQueryError = unknown
+
+
+export function useAdminControllerListProducers<TData = Awaited<ReturnType<typeof adminControllerListProducers>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminControllerListProducers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminControllerListProducers>>,
+          TError,
+          Awaited<ReturnType<typeof adminControllerListProducers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminControllerListProducers<TData = Awaited<ReturnType<typeof adminControllerListProducers>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminControllerListProducers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminControllerListProducers>>,
+          TError,
+          Awaited<ReturnType<typeof adminControllerListProducers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminControllerListProducers<TData = Awaited<ReturnType<typeof adminControllerListProducers>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminControllerListProducers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List organizations with their logins and event counts
+ */
+
+export function useAdminControllerListProducers<TData = Awaited<ReturnType<typeof adminControllerListProducers>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminControllerListProducers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAdminControllerListProducersQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+/**
+ * @summary Create an organization (Producer)
+ */
+export type adminControllerCreateProducerResponse201 = {
+  data: AdminProducerItem
+  status: 201
+}
+
+export type adminControllerCreateProducerResponseSuccess = (adminControllerCreateProducerResponse201) & {
+  headers: Headers;
+};
+;
+
+export type adminControllerCreateProducerResponse = (adminControllerCreateProducerResponseSuccess)
+
+export const getAdminControllerCreateProducerUrl = () => {
+
+
+
+
+  return `/api/v1/admin/producers`
+}
+
+export const adminControllerCreateProducer = async (createProducerDto: CreateProducerDto, options?: RequestInit): Promise<adminControllerCreateProducerResponse> => {
+
+  return customInstance<adminControllerCreateProducerResponse>(getAdminControllerCreateProducerUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createProducerDto,)
+  }
+);}
+
+
+
+
+export const getAdminControllerCreateProducerMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerCreateProducer>>, TError,{data: CreateProducerDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminControllerCreateProducer>>, TError,{data: CreateProducerDto}, TContext> => {
+
+const mutationKey = ['adminControllerCreateProducer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminControllerCreateProducer>>, {data: CreateProducerDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminControllerCreateProducer(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminControllerCreateProducerMutationResult = NonNullable<Awaited<ReturnType<typeof adminControllerCreateProducer>>>
+    export type AdminControllerCreateProducerMutationBody = CreateProducerDto
+    export type AdminControllerCreateProducerMutationError = unknown
+
+    /**
+ * @summary Create an organization (Producer)
+ */
+export const useAdminControllerCreateProducer = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerCreateProducer>>, TError,{data: CreateProducerDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminControllerCreateProducer>>,
+        TError,
+        {data: CreateProducerDto},
+        TContext
+      > => {
+      return useMutation(getAdminControllerCreateProducerMutationOptions(options), queryClient);
+    }
+
+/**
+ * @summary Create a PRODUCER login under an organization
+ */
+export type adminControllerCreateProducerUserResponse201 = {
+  data: AdminProducerUser
+  status: 201
+}
+
+export type adminControllerCreateProducerUserResponseSuccess = (adminControllerCreateProducerUserResponse201) & {
+  headers: Headers;
+};
+;
+
+export type adminControllerCreateProducerUserResponse = (adminControllerCreateProducerUserResponseSuccess)
+
+export const getAdminControllerCreateProducerUserUrl = (producerId: string,) => {
+
+
+
+
+  return `/api/v1/admin/producers/${producerId}/users`
+}
+
+export const adminControllerCreateProducerUser = async (producerId: string,
+    createProducerUserDto: CreateProducerUserDto, options?: RequestInit): Promise<adminControllerCreateProducerUserResponse> => {
+
+  return customInstance<adminControllerCreateProducerUserResponse>(getAdminControllerCreateProducerUserUrl(producerId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createProducerUserDto,)
+  }
+);}
+
+
+
+
+export const getAdminControllerCreateProducerUserMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerCreateProducerUser>>, TError,{producerId: string;data: CreateProducerUserDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminControllerCreateProducerUser>>, TError,{producerId: string;data: CreateProducerUserDto}, TContext> => {
+
+const mutationKey = ['adminControllerCreateProducerUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminControllerCreateProducerUser>>, {producerId: string;data: CreateProducerUserDto}> = (props) => {
+          const {producerId,data} = props ?? {};
+
+          return  adminControllerCreateProducerUser(producerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminControllerCreateProducerUserMutationResult = NonNullable<Awaited<ReturnType<typeof adminControllerCreateProducerUser>>>
+    export type AdminControllerCreateProducerUserMutationBody = CreateProducerUserDto
+    export type AdminControllerCreateProducerUserMutationError = unknown
+
+    /**
+ * @summary Create a PRODUCER login under an organization
+ */
+export const useAdminControllerCreateProducerUser = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerCreateProducerUser>>, TError,{producerId: string;data: CreateProducerUserDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminControllerCreateProducerUser>>,
+        TError,
+        {producerId: string;data: CreateProducerUserDto},
+        TContext
+      > => {
+      return useMutation(getAdminControllerCreateProducerUserMutationOptions(options), queryClient);
+    }
+
+/**
+ * @summary Reassign an event to an organization
+ */
+export type adminControllerReassignEventResponse200 = {
+  data: ReassignEventResult
+  status: 200
+}
+
+export type adminControllerReassignEventResponseSuccess = (adminControllerReassignEventResponse200) & {
+  headers: Headers;
+};
+;
+
+export type adminControllerReassignEventResponse = (adminControllerReassignEventResponseSuccess)
+
+export const getAdminControllerReassignEventUrl = (eventId: string,) => {
+
+
+
+
+  return `/api/v1/admin/events/${eventId}/producer`
+}
+
+export const adminControllerReassignEvent = async (eventId: string,
+    reassignEventDto: ReassignEventDto, options?: RequestInit): Promise<adminControllerReassignEventResponse> => {
+
+  return customInstance<adminControllerReassignEventResponse>(getAdminControllerReassignEventUrl(eventId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reassignEventDto,)
+  }
+);}
+
+
+
+
+export const getAdminControllerReassignEventMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerReassignEvent>>, TError,{eventId: string;data: ReassignEventDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminControllerReassignEvent>>, TError,{eventId: string;data: ReassignEventDto}, TContext> => {
+
+const mutationKey = ['adminControllerReassignEvent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminControllerReassignEvent>>, {eventId: string;data: ReassignEventDto}> = (props) => {
+          const {eventId,data} = props ?? {};
+
+          return  adminControllerReassignEvent(eventId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminControllerReassignEventMutationResult = NonNullable<Awaited<ReturnType<typeof adminControllerReassignEvent>>>
+    export type AdminControllerReassignEventMutationBody = ReassignEventDto
+    export type AdminControllerReassignEventMutationError = unknown
+
+    /**
+ * @summary Reassign an event to an organization
+ */
+export const useAdminControllerReassignEvent = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerReassignEvent>>, TError,{eventId: string;data: ReassignEventDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminControllerReassignEvent>>,
+        TError,
+        {eventId: string;data: ReassignEventDto},
+        TContext
+      > => {
+      return useMutation(getAdminControllerReassignEventMutationOptions(options), queryClient);
+    }
