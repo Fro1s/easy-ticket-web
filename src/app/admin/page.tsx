@@ -1,9 +1,21 @@
 'use client';
 
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { RoleGate } from '@/components/role-gate';
 import { ProducerHeader } from '@/components/producer-header';
-import { useProducerControllerDashboard } from '@/generated/api';
+import {
+  useProducerControllerDashboard,
+  useAdminControllerListProducers,
+  useAdminControllerReassignEvent,
+} from '@/generated/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { EVENT_STATUS_PT, PAYMENT_PROVIDER_PT, tr } from '@/lib/i18n';
 
 const fmtBRL = (cents: number) =>
@@ -48,8 +60,25 @@ function KpiCard({
 }
 
 export default function AdminPage() {
-  const { data, isLoading } = useProducerControllerDashboard();
+  const { data, isLoading, refetch } = useProducerControllerDashboard();
   const dash = data?.data;
+  const producersQuery = useAdminControllerListProducers();
+  const orgs = producersQuery.data?.data.items ?? [];
+  const reassign = useAdminControllerReassignEvent();
+
+  function handleReassign(eventId: string, producerId: string) {
+    reassign.mutate(
+      { eventId, data: { producerId } },
+      {
+        onSuccess: () => {
+          toast.success('Evento reatribuído');
+          refetch();
+        },
+        onError: () => toast.error('Falha ao reatribuir evento'),
+      },
+    );
+  }
+
 
   return (
     <RoleGate allow={['ADMIN']}>
@@ -86,10 +115,10 @@ export default function AdminPage() {
 
                 <ul className="space-y-3">
                   {dash.events.map((e) => (
-                    <li key={e.id}>
+                    <li key={e.id} className="border border-border/50 rounded-[6px] bg-card/40">
                       <Link
                         href={`/painel-produtor/eventos/${e.slug}`}
-                        className="block border border-border/50 rounded-[6px] p-5 bg-card/40 hover:border-accent/60 transition"
+                        className="block p-5 hover:bg-elevated/30 transition rounded-t-[6px]"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
@@ -132,6 +161,27 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </Link>
+                      <div className="flex items-center gap-2 border-t border-border/40 px-5 py-3">
+                        <span className="font-mono text-[10px] uppercase tracking-[1.5px] text-ink-dim">
+                          Mover para organização
+                        </span>
+                        <Select
+                          value=""
+                          onValueChange={(producerId) => producerId && handleReassign(e.id, producerId)}
+                          items={orgs.map((o) => ({ value: o.id, label: o.name }))}
+                        >
+                          <SelectTrigger className="h-8 min-w-[200px]">
+                            <SelectValue placeholder="Selecione…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {orgs.map((o) => (
+                              <SelectItem key={o.id} value={o.id}>
+                                {o.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </li>
                   ))}
                   {dash.events.length === 0 && (
