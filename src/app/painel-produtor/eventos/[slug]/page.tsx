@@ -32,10 +32,11 @@ import {
   useProducerControllerGetEvent,
   useProducerControllerListOrders,
   useProducerControllerPublishEvent,
+  useProducerControllerSearchAttendees,
   useProducerControllerSell,
   useProducerControllerUpdateBatch,
 } from '@/generated/api';
-import type { ProducerEventDetail, SellByEmailResponse } from '@/generated/api';
+import type { AttendeeSearchItem, ProducerEventDetail, SellByEmailResponse } from '@/generated/api';
 import {
   AttendeesForm,
   attendeesAllValid,
@@ -543,6 +544,7 @@ export default function EventoDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [sellOpen, setSellOpen] = useState(false);
   const [confirmOrderId, setConfirmOrderId] = useState<string | null>(null);
+  const [attendeeQuery, setAttendeeQuery] = useState('');
 
   const ev = useProducerControllerGetEvent(slug);
   const orders = useProducerControllerListOrders(
@@ -568,6 +570,23 @@ export default function EventoDetailPage() {
       orders.refetch();
       ev.refetch();
     },
+  });
+
+  const attendeesRes = useProducerControllerSearchAttendees(
+    slug,
+    { q: attendeeQuery },
+    { query: { enabled: attendeeQuery.trim().length >= 2 } },
+  );
+  const attendees = attendeesRes.data?.data.items ?? [];
+
+  const validateManual = useMutation({
+    mutationFn: (ticketId: string) =>
+      customInstance('/api/v1/producer/tickets/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketId }),
+      }),
+    onSuccess: () => attendeesRes.refetch(),
   });
 
   const detail = ev.data?.data;
@@ -729,6 +748,89 @@ export default function EventoDetailPage() {
                     }}
                   />
                 )}
+
+                {/* Attendee Search + Manual Validation */}
+                <section className="mb-10 border border-border/50 rounded-[6px] bg-card/30 p-4">
+                  <div className="mb-4">
+                    <h2 className="font-display text-2xl font-bold">Buscar comprador / validar manual</h2>
+                    <p className="text-xs text-ink-dim mt-1">
+                      Busque por e-mail, nome ou código de ingresso para validar manualmente na portaria.
+                    </p>
+                  </div>
+                  <Input
+                    value={attendeeQuery}
+                    onChange={(e) => setAttendeeQuery(e.target.value)}
+                    placeholder="E-mail, nome ou código (ex: ET-ABC123XYZ)…"
+                    className="mb-4"
+                  />
+                  {attendeeQuery.trim().length >= 2 && (
+                    <div className="space-y-2">
+                      {attendeesRes.isFetching && (
+                        <div className="text-ink-dim text-sm">Buscando…</div>
+                      )}
+                      {!attendeesRes.isFetching && attendees.length === 0 && (
+                        <div className="text-center border border-dashed border-border/50 rounded-[6px] p-5 text-sm text-ink-dim">
+                          Nenhum ingresso encontrado.
+                        </div>
+                      )}
+                      {attendees.map((a: AttendeeSearchItem) => (
+                        <div
+                          key={a.ticketId}
+                          className="grid grid-cols-1 md:grid-cols-[1fr_1fr_120px_auto] gap-3 items-center border border-border/40 bg-ink-deep/40 rounded-[4px] p-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium truncate">
+                              {a.holderName ?? a.buyerName ?? a.buyerEmail}
+                            </div>
+                            <div className="text-xs text-ink-dim truncate">
+                              {a.holderEmail ?? a.buyerEmail}
+                            </div>
+                          </div>
+                          <div className="text-xs text-ink-dim">
+                            <div>{a.sectorName}</div>
+                            <div className="font-mono">{a.shortCode}</div>
+                          </div>
+                          <div>
+                            <span
+                              className={cn(
+                                'px-1.5 py-0.5 rounded-[3px] font-mono text-[10px] uppercase tracking-[1.5px]',
+                                a.status === 'VALID'
+                                  ? 'bg-accent/15 text-accent'
+                                  : a.status === 'USED'
+                                    ? 'bg-green-500/15 text-green-300'
+                                    : 'bg-ink-dim/20 text-ink-dim',
+                              )}
+                            >
+                              {a.status === 'USED' ? 'validado' : a.status}
+                            </span>
+                            {a.status === 'USED' && a.usedAt && (
+                              <div className="text-[10px] text-ink-dim mt-0.5">
+                                {new Date(a.usedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            {a.status === 'VALID' && (
+                              <Button
+                                variant="accent"
+                                size="sm"
+                                disabled={validateManual.isPending}
+                                onClick={() => {
+                                  if (window.confirm('Validar este ingresso manualmente?')) {
+                                    validateManual.mutate(a.ticketId);
+                                  }
+                                }}
+                              >
+                                <Check className="w-4 h-4" />
+                                Validar
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
 
                 <>
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
