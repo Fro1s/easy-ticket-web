@@ -14,6 +14,7 @@ import {
 } from '@/generated/api';
 import { formatBRLFromCents, formatEventDate, formatTime } from '@/lib/format';
 import { buildIcs, downloadIcs } from '@/lib/ics';
+import { downloadOrderTicketsPdf } from '@/lib/ticket-pdf';
 import { posterStyle } from '@/lib/poster';
 
 export default function SuccessPage() {
@@ -129,7 +130,11 @@ function SuccessContent({ name }: { name: string }) {
 
       {/* action bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-10">
-        <ActionButton label="Baixar PDF" disabled />
+        <ActionButton
+          label="Baixar PDF"
+          disabled={orderTickets.length === 0}
+          onClick={() => void downloadOrderTicketsPdf(orderTickets)}
+        />
         <ActionButton label="Reenviar e-mail" disabled />
         <ActionButton
           label="Google Calendar"

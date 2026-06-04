@@ -14,6 +14,7 @@ import {
   type MyTicketItem,
 } from '@/generated/api';
 import { formatBRLFromCents, formatEventDate, formatTime } from '@/lib/format';
+import { downloadTicketPdf } from '@/lib/ticket-pdf';
 import { cn } from '@/lib/utils';
 import { posterStyle } from '@/lib/poster';
 
@@ -189,8 +190,12 @@ function TicketView({ ticket }: { ticket: MyTicketItem }) {
               <Button variant="ghost" size="sm" disabled>
                 Transferir (em breve)
               </Button>
-              <Button variant="ghost" size="sm" disabled>
-                Baixar PDF (em breve)
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void downloadTicketPdf(ticket)}
+              >
+                Baixar PDF
               </Button>
             </div>
           </div>
