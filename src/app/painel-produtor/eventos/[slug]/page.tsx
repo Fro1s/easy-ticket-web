@@ -52,6 +52,9 @@ import {
   tr,
 } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { posterStyle } from '@/lib/poster';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 const FILTERS = [
   'TODOS',
@@ -546,7 +549,7 @@ export default function EventoDetailPage() {
   const [sellOpen, setSellOpen] = useState(false);
   const [confirmOrderId, setConfirmOrderId] = useState<string | null>(null);
   const [attendeeQuery, setAttendeeQuery] = useState('');
-  const [resendMsg, setResendMsg] = useState<{ id: string; text: string; ok: boolean } | null>(null);
+  const [confirmTicket, setConfirmTicket] = useState<AttendeeSearchItem | null>(null);
 
   const ev = useProducerControllerGetEvent(slug);
   const orders = useProducerControllerListOrders(
@@ -590,7 +593,17 @@ export default function EventoDetailPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ticketId }),
       }),
-    onSuccess: () => attendeesRes.refetch(),
+    onSuccess: () => {
+      toast.success('Ingresso validado');
+      attendeesRes.refetch();
+    },
+    onError: (e: unknown) => {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 409) toast.error('Ingresso já validado');
+      else if (status === 404) toast.error('Ingresso não encontrado');
+      else if (status === 403) toast.error('Ingresso de outro evento');
+      else toast.error('Falha ao validar ingresso');
+    },
   });
 
   const detail = ev.data?.data;
@@ -653,11 +666,9 @@ export default function EventoDetailPage() {
             ) : (
               <>
                 <div className="grid md:grid-cols-[280px_1fr] gap-8 mb-12">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={detail.posterUrl}
-                    alt={detail.title}
-                    className="w-full aspect-[3/4] object-cover rounded-[6px]"
+                  <div
+                    className="w-full aspect-[3/4] rounded-[6px] bg-card"
+                    style={posterStyle(detail.posterUrl)}
                   />
                   <div>
                     <div className="flex flex-wrap items-center gap-3 mb-3">
@@ -732,15 +743,6 @@ export default function EventoDetailPage() {
                   </div>
                 </div>
 
-                {user.role !== 'STAFF' && (
-                  <BatchManager
-                    event={detail}
-                    onChanged={() => {
-                      ev.refetch();
-                    }}
-                  />
-                )}
-
                 {sellOpen && detail && (
                   <SellByEmailDialog
                     event={detail}
@@ -753,249 +755,282 @@ export default function EventoDetailPage() {
                   />
                 )}
 
-                {/* Attendee Search + Manual Validation */}
-                <section className="mb-10 border border-border/50 rounded-[6px] bg-card/30 p-4">
-                  <div className="mb-4">
-                    <h2 className="font-display text-2xl font-bold">Buscar comprador / validar manual</h2>
-                    <p className="text-xs text-ink-dim mt-1">
-                      Busque por e-mail, nome ou código de ingresso para validar manualmente na portaria.
-                    </p>
-                  </div>
-                  <Input
-                    value={attendeeQuery}
-                    onChange={(e) => setAttendeeQuery(e.target.value)}
-                    placeholder="E-mail, nome ou código (ex: ET-ABC123XYZ)…"
-                    className="mb-4"
-                  />
-                  {attendeeQuery.trim().length >= 2 && (
-                    <div className="space-y-2">
-                      {attendeesRes.isFetching && (
-                        <div className="text-ink-dim text-sm">Buscando…</div>
-                      )}
-                      {!attendeesRes.isFetching && attendees.length === 0 && (
-                        <div className="text-center border border-dashed border-border/50 rounded-[6px] p-5 text-sm text-ink-dim">
-                          Nenhum ingresso encontrado.
-                        </div>
-                      )}
-                      {attendees.map((a: AttendeeSearchItem) => (
-                        <div
-                          key={a.ticketId}
-                          className="grid grid-cols-1 md:grid-cols-[1fr_1fr_120px_auto] gap-3 items-center border border-border/40 bg-ink-deep/40 rounded-[4px] p-3"
-                        >
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">
-                              {a.holderName ?? a.buyerName ?? a.buyerEmail}
-                            </div>
-                            <div className="text-xs text-ink-dim truncate">
-                              {a.holderEmail ?? a.buyerEmail}
-                            </div>
-                          </div>
-                          <div className="text-xs text-ink-dim">
-                            <div>{a.sectorName}</div>
-                            <div className="font-mono">{a.shortCode}</div>
-                          </div>
-                          <div>
-                            <span
-                              className={cn(
-                                'px-1.5 py-0.5 rounded-[3px] font-mono text-[10px] uppercase tracking-[1.5px]',
-                                a.status === 'VALID'
-                                  ? 'bg-accent/15 text-accent'
-                                  : a.status === 'USED'
-                                    ? 'bg-green-500/15 text-green-300'
-                                    : 'bg-ink-dim/20 text-ink-dim',
-                              )}
-                            >
-                              {a.status === 'USED' ? 'validado' : a.status}
-                            </span>
-                            {a.status === 'USED' && a.usedAt && (
-                              <div className="text-[10px] text-ink-dim mt-0.5">
-                                {new Date(a.usedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            {a.status === 'VALID' && (
-                              <Button
-                                variant="accent"
-                                size="sm"
-                                disabled={validateManual.isPending}
-                                onClick={() => {
-                                  if (window.confirm('Validar este ingresso manualmente?')) {
-                                    validateManual.mutate(a.ticketId);
-                                  }
-                                }}
-                              >
-                                <Check className="w-4 h-4" />
-                                Validar
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
+                <Tabs defaultValue="lotes" className="mt-8">
+                  <TabsList>
+                    <TabsTrigger value="lotes">Lotes</TabsTrigger>
+                    <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
+                    <TabsTrigger value="validar">Buscar / Validar</TabsTrigger>
+                  </TabsList>
 
-                <>
-                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                  <h2 className="font-display text-2xl font-bold">Pedidos</h2>
-                  <div className="flex gap-2 flex-wrap">
-                    {FILTERS.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => setFilter(s)}
-                        className={cn(
-                          'px-3 py-1 rounded-[3px] font-mono text-[10px] tracking-[1.5px] uppercase transition-colors',
-                          filter === s
-                            ? 'bg-accent text-[#0A0A0F]'
-                            : 'bg-card/40 text-ink-dim border border-border/50 hover:text-foreground',
-                        )}
-                      >
-                        {FILTER_LABELS[s]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <ConfirmManualPaymentDialog
-                  orderId={confirmOrderId}
-                  open={!!confirmOrderId}
-                  onOpenChange={(v) => !v && setConfirmOrderId(null)}
-                  onConfirm={handleConfirm}
-                />
-
-                {orders.isLoading ? (
-                  <div className="text-ink-dim">Carregando pedidos…</div>
-                ) : (
-                  <ul className="space-y-2">
-                    {(list?.items ?? []).map((o) => (
-                      <li
-                        key={o.id}
-                        className="border border-border/50 rounded-[6px] p-4 bg-card/40 grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-4 items-center"
-                      >
-                        <div>
-                          <div className="font-mono text-[11px] text-foreground">
-                            #{o.shortId}
-                          </div>
-                          <div className="font-mono text-[10px] text-ink-dim">
-                            {fmtDT(o.createdAt)}
-                          </div>
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-sm truncate">{o.buyerEmail}</div>
-                          <div className="text-xs text-ink-dim">
-                            {o.buyerName ?? '—'} · {o.qty} ingresso(s)
-                          </div>
-                        </div>
-                        <div>
-                          {user.role !== 'STAFF' && (
-                            <div className="font-mono text-sm">{fmtBRL(o.totalCents)}</div>
-                          )}
-                          <div className="font-mono text-[10px] text-ink-dim">
-                            <span
-                              className={cn(
-                                'mr-2 px-1.5 py-0.5 rounded-[3px]',
-                                o.status === 'PAID'
-                                  ? 'bg-accent/15 text-accent'
-                                  : o.status === 'PENDING'
-                                    ? 'bg-yellow-500/15 text-yellow-300'
-                                    : 'bg-ink-dim/20 text-ink-dim',
-                              )}
-                            >
-                              {tr(ORDER_STATUS_PT, o.status)}
-                            </span>
-                            {o.paymentMethod ? tr(PAYMENT_METHOD_PT, o.paymentMethod) : 'sem método'}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2 justify-start md:justify-end">
-                          {user.role !== 'STAFF' && o.isManualPending && (
-                            <Button
-                              onClick={() => setConfirmOrderId(o.id)}
-                              variant="accent"
-                              size="sm"
-                            >
-                              <Check className="w-4 h-4" />
-                              Marcar pago
-                            </Button>
-                          )}
-                          {user.role !== 'STAFF' && o.status === 'PENDING' && (
-                            <Button
-                              onClick={() => handleCancel(o.id)}
-                              variant="outline"
-                              size="sm"
-                              disabled={cancelMut.isPending}
-                              className="border-red-400/50 text-red-300 hover:text-red-200"
-                            >
-                              <XCircle className="w-4 h-4" />
-                              Cancelar
-                            </Button>
-                          )}
-                          {user.role !== 'STAFF' && o.status === 'PAID' && (
-                            <div className="flex flex-col items-end gap-1">
-                              <button
-                                type="button"
-                                disabled={resendEmail.isPending && resendMsg?.id === o.id}
-                                onClick={() => {
-                                  setResendMsg(null);
-                                  resendEmail.mutate(
-                                    { id: o.id },
-                                    {
-                                      onSuccess: () =>
-                                        setResendMsg({ id: o.id, text: 'E-mail reenviado!', ok: true }),
-                                      onError: () =>
-                                        setResendMsg({ id: o.id, text: 'Falha ao reenviar.', ok: false }),
-                                    },
-                                  );
-                                }}
-                                className="font-mono text-[11px] uppercase tracking-widest px-3 py-1.5 rounded-[4px] border border-border hover:border-foreground transition-colors disabled:opacity-50"
-                              >
-                                {resendEmail.isPending && resendMsg?.id === o.id ? 'Enviando…' : 'Reenviar e-mail'}
-                              </button>
-                              {resendMsg?.id === o.id && (
-                                <span className={cn('font-mono text-[10px]', resendMsg.ok ? 'text-accent' : 'text-red-400')}>
-                                  {resendMsg.text}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                    {!list?.items?.length && (
-                      <li className="text-ink-dim text-center border border-dashed border-border/50 rounded-[6px] p-8">
-                        Nenhum pedido neste filtro.
-                      </li>
+                  <TabsContent value="lotes">
+                    {user.role !== 'STAFF' && (
+                      <BatchManager
+                        event={detail}
+                        onChanged={() => {
+                          ev.refetch();
+                        }}
+                      />
                     )}
-                  </ul>
-                )}
-                {list && list.total > list.pageSize && (
-                  <div className="flex items-center justify-between mt-4 gap-3 flex-wrap">
-                    <div className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
-                      {(list.page - 1) * list.pageSize + 1}
-                      –
-                      {Math.min(list.page * list.pageSize, list.total)} de {list.total}
+                  </TabsContent>
+
+                  <TabsContent value="pedidos">
+                    <div className="flex items-center justify-between mb-4 flex-wrap gap-2 mt-6">
+                      <h2 className="font-display text-2xl font-bold">Pedidos</h2>
+                      <div className="flex gap-2 flex-wrap">
+                        {FILTERS.map((s) => (
+                          <button
+                            key={s}
+                            onClick={() => setFilter(s)}
+                            className={cn(
+                              'px-3 py-1 rounded-[3px] font-mono text-[10px] tracking-[1.5px] uppercase transition-colors',
+                              filter === s
+                                ? 'bg-accent text-[#0A0A0F]'
+                                : 'bg-card/40 text-ink-dim border border-border/50 hover:text-foreground',
+                            )}
+                          >
+                            {FILTER_LABELS[s]}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex gap-2">
+
+                    <ConfirmManualPaymentDialog
+                      orderId={confirmOrderId}
+                      open={!!confirmOrderId}
+                      onOpenChange={(v) => !v && setConfirmOrderId(null)}
+                      onConfirm={handleConfirm}
+                    />
+
+                    {orders.isLoading ? (
+                      <div className="text-ink-dim">Carregando pedidos…</div>
+                    ) : (
+                      <ul className="space-y-2">
+                        {(list?.items ?? []).map((o) => (
+                          <li
+                            key={o.id}
+                            className="border border-border/50 rounded-[6px] p-4 bg-card/40 grid grid-cols-1 md:grid-cols-[120px_1fr_1fr_auto] gap-4 items-center"
+                          >
+                            <div>
+                              <div className="font-mono text-[11px] text-foreground">
+                                #{o.shortId}
+                              </div>
+                              <div className="font-mono text-[10px] text-ink-dim">
+                                {fmtDT(o.createdAt)}
+                              </div>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm truncate">{o.buyerEmail}</div>
+                              <div className="text-xs text-ink-dim">
+                                {o.buyerName ?? '—'} · {o.qty} ingresso(s)
+                              </div>
+                            </div>
+                            <div>
+                              {user.role !== 'STAFF' && (
+                                <div className="font-mono text-sm">{fmtBRL(o.totalCents)}</div>
+                              )}
+                              <div className="font-mono text-[10px] text-ink-dim">
+                                <span
+                                  className={cn(
+                                    'mr-2 px-1.5 py-0.5 rounded-[3px]',
+                                    o.status === 'PAID'
+                                      ? 'bg-accent/15 text-accent'
+                                      : o.status === 'PENDING'
+                                        ? 'bg-yellow-500/15 text-yellow-300'
+                                        : 'bg-ink-dim/20 text-ink-dim',
+                                  )}
+                                >
+                                  {tr(ORDER_STATUS_PT, o.status)}
+                                </span>
+                                {o.paymentMethod ? tr(PAYMENT_METHOD_PT, o.paymentMethod) : 'sem método'}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 justify-start md:justify-end">
+                              {user.role !== 'STAFF' && o.isManualPending && (
+                                <Button
+                                  onClick={() => setConfirmOrderId(o.id)}
+                                  variant="accent"
+                                  size="sm"
+                                >
+                                  <Check className="w-4 h-4" />
+                                  Marcar pago
+                                </Button>
+                              )}
+                              {user.role !== 'STAFF' && o.status === 'PENDING' && (
+                                <Button
+                                  onClick={() => handleCancel(o.id)}
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={cancelMut.isPending}
+                                  className="border-red-400/50 text-red-300 hover:text-red-200"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                  Cancelar
+                                </Button>
+                              )}
+                              {user.role !== 'STAFF' && o.status === 'PAID' && (
+                                <button
+                                  type="button"
+                                  disabled={resendEmail.isPending && resendEmail.variables?.id === o.id}
+                                  onClick={() =>
+                                    resendEmail.mutate(
+                                      { id: o.id },
+                                      {
+                                        onSuccess: () => toast.success('E-mail reenviado'),
+                                        onError: () => toast.error('Falha ao reenviar e-mail'),
+                                      },
+                                    )
+                                  }
+                                  className="font-mono text-[11px] uppercase tracking-widest px-3 py-1.5 rounded-[4px] border border-border hover:border-foreground transition-colors disabled:opacity-50"
+                                >
+                                  {resendEmail.isPending && resendEmail.variables?.id === o.id ? 'Enviando…' : 'Reenviar e-mail'}
+                                </button>
+                              )}
+                            </div>
+                          </li>
+                        ))}
+                        {!list?.items?.length && (
+                          <li className="text-ink-dim text-center border border-dashed border-border/50 rounded-[6px] p-8">
+                            Nenhum pedido neste filtro.
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                    {list && list.total > list.pageSize && (
+                      <div className="flex items-center justify-between mt-4 gap-3 flex-wrap">
+                        <div className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
+                          {(list.page - 1) * list.pageSize + 1}
+                          –
+                          {Math.min(list.page * list.pageSize, list.total)} de {list.total}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            disabled={list.page <= 1 || orders.isFetching}
+                          >
+                            Anterior
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((p) => p + 1)}
+                            disabled={list.page * list.pageSize >= list.total || orders.isFetching}
+                          >
+                            Próxima
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="validar">
+                    {/* Attendee Search + Manual Validation */}
+                    <section className="mb-10 border border-border/50 rounded-[6px] bg-card/30 p-4 mt-6">
+                      <div className="mb-4">
+                        <h2 className="font-display text-2xl font-bold">Buscar comprador / validar manual</h2>
+                        <p className="text-xs text-ink-dim mt-1">
+                          Busque por e-mail, nome ou código de ingresso para validar manualmente na portaria.
+                        </p>
+                      </div>
+                      <Input
+                        value={attendeeQuery}
+                        onChange={(e) => setAttendeeQuery(e.target.value)}
+                        placeholder="E-mail, nome ou código (ex: ET-ABC123XYZ)…"
+                        className="mb-4"
+                      />
+                      {attendeeQuery.trim().length >= 2 && (
+                        <div className="space-y-2">
+                          {attendeesRes.isFetching && (
+                            <div className="text-ink-dim text-sm">Buscando…</div>
+                          )}
+                          {!attendeesRes.isFetching && attendees.length === 0 && (
+                            <div className="text-center border border-dashed border-border/50 rounded-[6px] p-5 text-sm text-ink-dim">
+                              Nenhum ingresso encontrado.
+                            </div>
+                          )}
+                          {attendees.map((a: AttendeeSearchItem) => (
+                            <div
+                              key={a.ticketId}
+                              className="grid grid-cols-1 md:grid-cols-[1fr_1fr_120px_auto] gap-3 items-center border border-border/40 bg-ink-deep/40 rounded-[4px] p-3"
+                            >
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium truncate">
+                                  {a.holderName ?? a.buyerName ?? a.buyerEmail}
+                                </div>
+                                <div className="text-xs text-ink-dim truncate">
+                                  {a.holderEmail ?? a.buyerEmail}
+                                </div>
+                              </div>
+                              <div className="text-xs text-ink-dim">
+                                <div>{a.sectorName}</div>
+                                <div className="font-mono">{a.shortCode}</div>
+                              </div>
+                              <div>
+                                <span
+                                  className={cn(
+                                    'px-1.5 py-0.5 rounded-[3px] font-mono text-[10px] uppercase tracking-[1.5px]',
+                                    a.status === 'VALID'
+                                      ? 'bg-accent/15 text-accent'
+                                      : a.status === 'USED'
+                                        ? 'bg-green-500/15 text-green-300'
+                                        : 'bg-ink-dim/20 text-ink-dim',
+                                  )}
+                                >
+                                  {a.status === 'USED' ? 'validado' : a.status}
+                                </span>
+                                {a.status === 'USED' && a.usedAt && (
+                                  <div className="text-[10px] text-ink-dim mt-0.5">
+                                    {new Date(a.usedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                {a.status === 'VALID' && (
+                                  <Button
+                                    variant="accent"
+                                    size="sm"
+                                    disabled={validateManual.isPending}
+                                    onClick={() => setConfirmTicket(a)}
+                                  >
+                                    <Check className="w-4 h-4" />
+                                    Validar
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  </TabsContent>
+                </Tabs>
+
+                <Dialog open={!!confirmTicket} onOpenChange={(open) => { if (!open) setConfirmTicket(null); }}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Validar ingresso manualmente</DialogTitle>
+                      <DialogDescription>
+                        {confirmTicket
+                          ? `Confirmar entrada de ${confirmTicket.holderName ?? confirmTicket.buyerName ?? confirmTicket.buyerEmail} — ${confirmTicket.sectorName} · ${confirmTicket.shortCode}? Esta ação marca o ingresso como usado.`
+                          : ''}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button variant="ghost" onClick={() => setConfirmTicket(null)}>Cancelar</Button>
                       <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={list.page <= 1 || orders.isFetching}
+                        variant="accent"
+                        disabled={validateManual.isPending}
+                        onClick={() => {
+                          if (confirmTicket) validateManual.mutate(confirmTicket.ticketId);
+                          setConfirmTicket(null);
+                        }}
                       >
-                        Anterior
+                        Validar
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage((p) => p + 1)}
-                        disabled={list.page * list.pageSize >= list.total || orders.isFetching}
-                      >
-                        Próxima
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                </>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </>
             )}
             </div>

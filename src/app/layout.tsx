@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ThemeProvider } from 'next-themes';
+import { Toaster } from 'sonner';
 import { Providers } from '@/components/providers';
 import { fraunces, interTight, jetbrainsMono, syne } from './fonts';
 import './globals.css';
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Providers>
             {children}
           </Providers>
+          <Toaster richColors position="top-center" theme="dark" />
         </ThemeProvider>
       </body>
     </html>
