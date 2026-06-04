@@ -19,6 +19,7 @@ import { formatBRLFromCents, formatEventDate, formatTime } from '@/lib/format';
 import { useOrderStream } from '@/lib/use-order-stream';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
+import { posterStyle } from '@/lib/poster';
 import {
   AttendeesForm,
   attendeesAllValid,
@@ -541,7 +542,7 @@ function OrderSummaryCard({
       <div className="flex gap-3.5 pb-4 border-b border-dashed border-border">
         <div
           className="w-16 h-16 rounded-[12px] shrink-0"
-          style={{ background: order.event.posterUrl || 'var(--bg-input)' }}
+          style={posterStyle(order.event.posterUrl)}
         />
         <div className="min-w-0 flex-1">
           <div className="font-mono text-[10px] text-accent tracking-[0.8px] mb-1">

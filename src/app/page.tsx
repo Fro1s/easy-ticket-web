@@ -14,6 +14,7 @@ import {
 } from '@/generated/api';
 import { formatBRLFromCents, formatEventDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { posterStyle } from '@/lib/poster';
 
 const CATEGORIES: { key: 'TODOS' | keyof typeof EventsControllerListCategory; label: string }[] = [
   { key: 'TODOS', label: 'Tudo' },
@@ -179,7 +180,7 @@ function FeaturedCard({ event }: { event: EventSummary }) {
         <div
           className="relative aspect-[4/5] rounded-[24px] overflow-hidden border border-border"
           style={{
-            background: event.posterUrl,
+            ...posterStyle(event.posterUrl),
             boxShadow: '0 40px 100px rgba(255,61,138,0.30)',
           }}
         >

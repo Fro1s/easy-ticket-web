@@ -13,6 +13,7 @@ import {
 } from '@/generated/api';
 import { formatEventDate, formatTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { posterStyle } from '@/lib/poster';
 
 type StatusFilter = 'TODOS' | keyof typeof MyTicketItemStatus;
 
@@ -139,7 +140,7 @@ function TicketCardLink({ ticket }: { ticket: MyTicketItem }) {
     >
       <div
         className="relative aspect-[4/3]"
-        style={{ background: ticket.event.posterUrl || 'var(--bg-input)' }}
+        style={posterStyle(ticket.event.posterUrl)}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
         <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-[10px] font-mono font-semibold tracking-[0.5px] uppercase text-white">

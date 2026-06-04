@@ -14,6 +14,7 @@ import {
 } from '@/generated/api';
 import { formatBRLFromCents, formatEventDate, formatTime } from '@/lib/format';
 import { buildIcs, downloadIcs } from '@/lib/ics';
+import { posterStyle } from '@/lib/poster';
 
 export default function SuccessPage() {
   return (
@@ -266,7 +267,7 @@ function TicketStub({
       {/* poster side */}
       <div
         className="md:w-[220px] aspect-[16/10] md:aspect-auto relative shrink-0"
-        style={{ background: posterUrl || 'var(--bg-input)' }}
+        style={posterStyle(posterUrl)}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent md:bg-gradient-to-r md:from-transparent md:to-black/20" />
         <div className="absolute bottom-4 left-4 right-4 text-white">

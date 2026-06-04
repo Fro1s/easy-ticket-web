@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { formatBRLFromCents, formatEventDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { posterStyle } from '@/lib/poster';
 
 export interface EventCardData {
   slug: string;
@@ -47,7 +48,7 @@ export function EventCard({ event, className }: EventCardProps) {
       >
         <div
           className="relative aspect-[4/3]"
-          style={{ background: event.posterUrl }}
+          style={posterStyle(event.posterUrl)}
         >
           <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-[10px] font-mono font-semibold tracking-[0.5px] uppercase text-white">
             {CATEGORY_LABEL[event.category] ?? event.category}

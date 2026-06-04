@@ -15,6 +15,7 @@ import {
 } from '@/generated/api';
 import { formatBRLFromCents, formatEventDate, formatTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { posterStyle } from '@/lib/poster';
 
 export default function TicketDetailPage() {
   return (
@@ -85,7 +86,7 @@ function TicketView({ ticket }: { ticket: MyTicketItem }) {
         {/* poster header */}
         <div
           className="relative aspect-[16/9] md:aspect-[21/9]"
-          style={{ background: ticket.event.posterUrl || 'var(--bg-input)' }}
+          style={posterStyle(ticket.event.posterUrl)}
         >
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/10" />
           <div className="absolute top-5 left-5 right-5 flex justify-between items-start gap-3">

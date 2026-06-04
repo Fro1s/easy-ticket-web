@@ -17,6 +17,7 @@ import {
 import { getAccessToken } from '@/lib/auth';
 import { formatBRLFromCents, formatEventDate, formatTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { posterStyle } from '@/lib/poster';
 
 const CATEGORY_LABEL: Record<string, string> = {
   SHOW: 'Shows',
@@ -154,7 +155,7 @@ export default function EventDetailPage() {
       <section className="max-w-[1440px] mx-auto px-6 md:px-16 pt-6">
         <div
           className="relative rounded-[24px] md:rounded-[28px] overflow-hidden aspect-[4/5] sm:aspect-[16/10] md:aspect-[21/9] border border-border"
-          style={{ background: event.posterUrl }}
+          style={posterStyle(event.posterUrl)}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/85" />
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12">
