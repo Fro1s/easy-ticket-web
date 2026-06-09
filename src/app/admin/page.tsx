@@ -8,6 +8,8 @@ import {
   useProducerControllerDashboard,
   useAdminControllerListProducers,
   useAdminControllerReassignEvent,
+  useAdminControllerArchiveEvent,
+  useAdminControllerUnarchiveEvent,
 } from '@/generated/api';
 import {
   Select,
@@ -28,6 +30,7 @@ const STATUS_PILL: Record<string, string> = {
   PUBLISHED: 'bg-accent/15 text-accent',
   DRAFT: 'bg-ink-dim/20 text-ink-dim',
   CANCELLED: 'bg-red-500/15 text-red-400',
+  ARCHIVED: 'bg-ink-dim/20 text-ink-dim',
 };
 
 function KpiCard({
@@ -65,6 +68,8 @@ export default function AdminPage() {
   const producersQuery = useAdminControllerListProducers();
   const orgs = producersQuery.data?.data.items ?? [];
   const reassign = useAdminControllerReassignEvent();
+  const archive = useAdminControllerArchiveEvent();
+  const unarchive = useAdminControllerUnarchiveEvent();
 
   function handleReassign(eventId: string, producerId: string) {
     reassign.mutate(
@@ -75,6 +80,21 @@ export default function AdminPage() {
           refetch();
         },
         onError: () => toast.error('Falha ao reatribuir evento'),
+      },
+    );
+  }
+
+  function handleArchiveToggle(eventId: string, isArchived: boolean) {
+    const mut = isArchived ? unarchive : archive;
+    mut.mutate(
+      { id: eventId },
+      {
+        onSuccess: () => {
+          toast.success(isArchived ? 'Evento reativado' : 'Evento desativado');
+          refetch();
+        },
+        onError: () =>
+          toast.error(isArchived ? 'Falha ao reativar' : 'Falha ao desativar'),
       },
     );
   }
@@ -161,7 +181,7 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </Link>
-                      <div className="flex items-center gap-2 border-t border-border/40 px-5 py-3">
+                      <div className="flex items-center gap-2 border-t border-border/40 px-5 py-3 flex-wrap">
                         <span className="font-mono text-[10px] uppercase tracking-[1.5px] text-ink-dim">
                           Mover para organização
                         </span>
@@ -181,6 +201,16 @@ export default function AdminPage() {
                             ))}
                           </SelectContent>
                         </Select>
+                        <button
+                          type="button"
+                          onClick={() => handleArchiveToggle(e.id, e.status === 'ARCHIVED')}
+                          disabled={
+                            e.status !== 'PUBLISHED' && e.status !== 'ARCHIVED'
+                          }
+                          className="ml-auto inline-flex items-center h-8 px-3 rounded-[4px] font-mono text-[10px] uppercase tracking-[1.5px] border border-border/50 text-ink-dim hover:text-foreground transition disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {e.status === 'ARCHIVED' ? 'Reativar' : 'Desativar'}
+                        </button>
                       </div>
                     </li>
                   ))}
