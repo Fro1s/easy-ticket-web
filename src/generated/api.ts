@@ -126,6 +126,7 @@ export const EventSummaryStatus = {
   PUBLISHED: 'PUBLISHED',
   CANCELLED: 'CANCELLED',
   SOLD_OUT: 'SOLD_OUT',
+  ARCHIVED: 'ARCHIVED',
 } as const;
 
 export interface EventSummary {
@@ -193,6 +194,7 @@ export const EventDetailStatus = {
   PUBLISHED: 'PUBLISHED',
   CANCELLED: 'CANCELLED',
   SOLD_OUT: 'SOLD_OUT',
+  ARCHIVED: 'ARCHIVED',
 } as const;
 
 export interface EventDetail {
@@ -632,6 +634,7 @@ export const ProducerEventSummaryStatus = {
   PUBLISHED: 'PUBLISHED',
   CANCELLED: 'CANCELLED',
   SOLD_OUT: 'SOLD_OUT',
+  ARCHIVED: 'ARCHIVED',
 } as const;
 
 export type ProducerEventSummaryPaymentProvider = typeof ProducerEventSummaryPaymentProvider[keyof typeof ProducerEventSummaryPaymentProvider];
@@ -657,6 +660,8 @@ export interface ProducerEventSummary {
   venue: ProducerEventVenue;
   /** @nullable */
   kpis: ProducerEventKpis | null;
+  /** @nullable */
+  featuredAt: string | null;
 }
 
 export interface ProducerDashboardResponse {
@@ -742,6 +747,8 @@ export interface CreateEventDto {
      * @maximum 0.5
      */
   platformFeeRate: number;
+  /** Produtor dono do evento. Apenas ADMIN pode informar; PRODUCER usa sempre o próprio vínculo. */
+  producerId?: string;
   sectors: CreateEventSectorDto[];
 }
 
@@ -791,6 +798,7 @@ export const ProducerEventDetailStatus = {
   PUBLISHED: 'PUBLISHED',
   CANCELLED: 'CANCELLED',
   SOLD_OUT: 'SOLD_OUT',
+  ARCHIVED: 'ARCHIVED',
 } as const;
 
 export type ProducerEventDetailPaymentProvider = typeof ProducerEventDetailPaymentProvider[keyof typeof ProducerEventDetailPaymentProvider];
@@ -830,6 +838,8 @@ export interface ProducerEventDetail {
   venue: ProducerEventVenue;
   /** @nullable */
   kpis: ProducerEventKpis | null;
+  /** @nullable */
+  featuredAt: string | null;
   /** @nullable */
   description: string | null;
   ageRating: number;
@@ -1189,6 +1199,29 @@ export interface ReassignEventDto {
 export interface ReassignEventResult {
   id: string;
   producerId: string;
+}
+
+export type AdminEventActionResultStatus = typeof AdminEventActionResultStatus[keyof typeof AdminEventActionResultStatus];
+
+
+export const AdminEventActionResultStatus = {
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+  CANCELLED: 'CANCELLED',
+  SOLD_OUT: 'SOLD_OUT',
+  ARCHIVED: 'ARCHIVED',
+} as const;
+
+export interface AdminEventActionResult {
+  id: string;
+  status: AdminEventActionResultStatus;
+  /** @nullable */
+  featuredAt: string | null;
+}
+
+export interface FeatureEventDto {
+  /** true destaca na home, false remove o destaque */
+  featured: boolean;
 }
 
 export type EventsControllerListParams = {
@@ -5470,4 +5503,252 @@ export const useAdminControllerReassignEvent = <TError = unknown,
         TContext
       > => {
       return useMutation(getAdminControllerReassignEventMutationOptions(options), queryClient);
+    }
+
+/**
+ * @summary Desativa um evento (some do site, painel mantém)
+ */
+export type adminControllerArchiveEventResponse200 = {
+  data: AdminEventActionResult
+  status: 200
+}
+
+export type adminControllerArchiveEventResponseSuccess = (adminControllerArchiveEventResponse200) & {
+  headers: Headers;
+};
+;
+
+export type adminControllerArchiveEventResponse = (adminControllerArchiveEventResponseSuccess)
+
+export const getAdminControllerArchiveEventUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/events/${id}/archive`
+}
+
+export const adminControllerArchiveEvent = async (id: string, options?: RequestInit): Promise<adminControllerArchiveEventResponse> => {
+
+  return customInstance<adminControllerArchiveEventResponse>(getAdminControllerArchiveEventUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getAdminControllerArchiveEventMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerArchiveEvent>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminControllerArchiveEvent>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['adminControllerArchiveEvent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminControllerArchiveEvent>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  adminControllerArchiveEvent(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminControllerArchiveEventMutationResult = NonNullable<Awaited<ReturnType<typeof adminControllerArchiveEvent>>>
+
+    export type AdminControllerArchiveEventMutationError = unknown
+
+    /**
+ * @summary Desativa um evento (some do site, painel mantém)
+ */
+export const useAdminControllerArchiveEvent = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerArchiveEvent>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminControllerArchiveEvent>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getAdminControllerArchiveEventMutationOptions(options), queryClient);
+    }
+
+/**
+ * @summary Reativa um evento arquivado
+ */
+export type adminControllerUnarchiveEventResponse200 = {
+  data: AdminEventActionResult
+  status: 200
+}
+
+export type adminControllerUnarchiveEventResponseSuccess = (adminControllerUnarchiveEventResponse200) & {
+  headers: Headers;
+};
+;
+
+export type adminControllerUnarchiveEventResponse = (adminControllerUnarchiveEventResponseSuccess)
+
+export const getAdminControllerUnarchiveEventUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/events/${id}/unarchive`
+}
+
+export const adminControllerUnarchiveEvent = async (id: string, options?: RequestInit): Promise<adminControllerUnarchiveEventResponse> => {
+
+  return customInstance<adminControllerUnarchiveEventResponse>(getAdminControllerUnarchiveEventUrl(id),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getAdminControllerUnarchiveEventMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerUnarchiveEvent>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminControllerUnarchiveEvent>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['adminControllerUnarchiveEvent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminControllerUnarchiveEvent>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  adminControllerUnarchiveEvent(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminControllerUnarchiveEventMutationResult = NonNullable<Awaited<ReturnType<typeof adminControllerUnarchiveEvent>>>
+
+    export type AdminControllerUnarchiveEventMutationError = unknown
+
+    /**
+ * @summary Reativa um evento arquivado
+ */
+export const useAdminControllerUnarchiveEvent = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerUnarchiveEvent>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminControllerUnarchiveEvent>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getAdminControllerUnarchiveEventMutationOptions(options), queryClient);
+    }
+
+/**
+ * @summary Destaca/remove destaque do evento na home
+ */
+export type adminControllerFeatureEventResponse200 = {
+  data: AdminEventActionResult
+  status: 200
+}
+
+export type adminControllerFeatureEventResponseSuccess = (adminControllerFeatureEventResponse200) & {
+  headers: Headers;
+};
+;
+
+export type adminControllerFeatureEventResponse = (adminControllerFeatureEventResponseSuccess)
+
+export const getAdminControllerFeatureEventUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/admin/events/${id}/feature`
+}
+
+export const adminControllerFeatureEvent = async (id: string,
+    featureEventDto: FeatureEventDto, options?: RequestInit): Promise<adminControllerFeatureEventResponse> => {
+
+  return customInstance<adminControllerFeatureEventResponse>(getAdminControllerFeatureEventUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      featureEventDto,)
+  }
+);}
+
+
+
+
+export const getAdminControllerFeatureEventMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerFeatureEvent>>, TError,{id: string;data: FeatureEventDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminControllerFeatureEvent>>, TError,{id: string;data: FeatureEventDto}, TContext> => {
+
+const mutationKey = ['adminControllerFeatureEvent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminControllerFeatureEvent>>, {id: string;data: FeatureEventDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminControllerFeatureEvent(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminControllerFeatureEventMutationResult = NonNullable<Awaited<ReturnType<typeof adminControllerFeatureEvent>>>
+    export type AdminControllerFeatureEventMutationBody = FeatureEventDto
+    export type AdminControllerFeatureEventMutationError = unknown
+
+    /**
+ * @summary Destaca/remove destaque do evento na home
+ */
+export const useAdminControllerFeatureEvent = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminControllerFeatureEvent>>, TError,{id: string;data: FeatureEventDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminControllerFeatureEvent>>,
+        TError,
+        {id: string;data: FeatureEventDto},
+        TContext
+      > => {
+      return useMutation(getAdminControllerFeatureEventMutationOptions(options), queryClient);
     }
