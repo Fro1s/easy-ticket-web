@@ -23,6 +23,7 @@ export const EVENT_STATUS_PT: Record<string, string> = {
   PUBLISHED: 'Publicado',
   CANCELLED: 'Cancelado',
   ENDED: 'Encerrado',
+  ARCHIVED: 'Arquivado',
 };
 
 export const PAYMENT_PROVIDER_PT: Record<string, string> = {
