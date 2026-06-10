@@ -12,6 +12,7 @@ import {
   useOrdersControllerFindOne,
   useOrdersControllerCheckout,
   useOrdersControllerUpdateAttendees,
+  useOrdersControllerCreate,
   OrderPaymentInfoMethod,
   type OrderResponse,
 } from '@/generated/api';
@@ -54,6 +55,7 @@ function CheckoutContent() {
   const orderQuery = useOrdersControllerFindOne(orderId);
   const checkoutMut = useOrdersControllerCheckout();
   const attendeesMut = useOrdersControllerUpdateAttendees();
+  const createOrder = useOrdersControllerCreate();
   const { user } = useAuth();
 
   const order = orderQuery.data?.data;
@@ -209,7 +211,29 @@ function CheckoutContent() {
     } catch (err: unknown) {
       if (isAxiosError(err)) {
         const data = err.response?.data as { message?: string } | undefined;
-        setError(data?.message ?? 'Não foi possível iniciar o pagamento.');
+        const msg = data?.message ?? '';
+        // Pedido expirou/saiu de pending enquanto a tela estava aberta: em vez
+        // de travar a pessoa, recria um pedido novo com os mesmos itens e
+        // manda pro checkout dele.
+        if (/not pending|expired|expirou/i.test(msg) && order) {
+          try {
+            const res = await createOrder.mutateAsync({
+              data: {
+                eventSlug: order.event.slug,
+                items: order.items.map((it) => ({
+                  sectorId: it.sectorId,
+                  qty: it.qty,
+                })),
+              },
+            });
+            router.replace(`/checkout/${res.data.id}`);
+            return;
+          } catch {
+            setError('Sua reserva expirou. Volte ao evento e tente de novo.');
+            return;
+          }
+        }
+        setError(msg || 'Não foi possível iniciar o pagamento.');
       } else {
         setError('Erro inesperado. Tente novamente.');
       }
