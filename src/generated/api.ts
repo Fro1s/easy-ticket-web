@@ -399,6 +399,7 @@ export interface OrderEventResponse {
   venueCity: string;
   venueState: string;
   paymentProvider: OrderEventResponsePaymentProvider;
+  cardEnabled: boolean;
 }
 
 export type OrderItemResponseAttendeesItem = {
@@ -850,6 +851,7 @@ export interface ProducerEventDetail {
   /** @nullable */
   pixHolderName: string | null;
   sectors: ProducerEventSectorSummary[];
+  cardEnabled: boolean;
 }
 
 export type UpdateEventDtoCategory = typeof UpdateEventDtoCategory[keyof typeof UpdateEventDtoCategory];
@@ -897,6 +899,7 @@ export interface UpdateEventDto {
   pixKeyType?: UpdateEventDtoPixKeyType;
   pixHolderName?: string;
   platformFeeRate?: number;
+  cardEnabled?: boolean;
 }
 
 export type ProducerOrderItemStatus = typeof ProducerOrderItemStatus[keyof typeof ProducerOrderItemStatus];
