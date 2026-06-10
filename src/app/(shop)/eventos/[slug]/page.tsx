@@ -90,7 +90,7 @@ export default function EventDetailPage() {
   const selected = event.sectors.find((s) => s.id === sectorId) ?? event.sectors[0];
   const liveStock = getAvailability(selected, availability?.sectors);
 
-  const maxQty = Math.min(6, Math.max(1, liveStock));
+  const maxQty = Math.min(2, Math.max(1, liveStock));
   const safeQty = Math.min(qty, maxQty);
 
   const unitCents = selected.activeBatch?.priceCents ?? 0;
