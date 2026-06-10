@@ -304,6 +304,8 @@ export interface MyTicketItem {
   holderEmail: string | null;
   event: MyTicketEvent;
   sector: MyTicketSector;
+  /** @nullable */
+  batchName: string | null;
 }
 
 export interface MyTicketsResponse {
@@ -412,6 +414,8 @@ export interface OrderItemResponse {
   id: string;
   sectorId: string;
   sectorName: string;
+  /** @nullable */
+  batchName: string | null;
   sectorColorHex: string;
   qty: number;
   priceCents: number;
@@ -972,6 +976,8 @@ export interface AttendeeSearchItem {
   buyerName: string | null;
   buyerEmail: string;
   sectorName: string;
+  /** @nullable */
+  batchName: string | null;
   status: AttendeeSearchItemStatus;
   /** @nullable */
   usedAt: string | null;
