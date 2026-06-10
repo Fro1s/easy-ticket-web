@@ -132,6 +132,7 @@ export default function EditarEventoPage() {
   const [pixKey, setPixKey] = useState('');
   const [pixKeyType, setPixKeyType] = useState<UpdateEventDto['pixKeyType']>(UpdateEventDtoPixKeyType.CNPJ);
   const [pixHolderName, setPixHolderName] = useState('');
+  const [cardEnabled, setCardEnabled] = useState(true);
   const [startsDate, setStartsDate] = useState<Date | undefined>(undefined);
   const [startsTime, setStartsTime] = useState('21:00');
   const [doorsDate, setDoorsDate] = useState<Date | undefined>(undefined);
@@ -154,6 +155,7 @@ export default function EditarEventoPage() {
     setPixKey(detail.pixKey ?? '');
     setPixKeyType((detail.pixKeyType ?? UpdateEventDtoPixKeyType.CNPJ) as UpdateEventDto['pixKeyType']);
     setPixHolderName(detail.pixHolderName ?? '');
+    setCardEnabled(detail.cardEnabled ?? true);
     setStartsDate(new Date(detail.startsAt));
     setStartsTime(timeFromIso(detail.startsAt));
     setDoorsDate(new Date(detail.doorsAt));
@@ -207,6 +209,7 @@ export default function EditarEventoPage() {
       pixKeyType: pixKey.trim() ? pixKeyType : undefined,
       pixHolderName: pixHolderName.trim() || undefined,
       platformFeeRate: Number(feePercent) / 100,
+      cardEnabled: provider === UpdateEventDtoPaymentProvider.ABACATE_PAY ? cardEnabled : true,
     };
     try {
       await update.mutateAsync({ id: detail.id, data: dto });
@@ -433,6 +436,20 @@ export default function EditarEventoPage() {
                         onChange={(e) => setFeePercent(e.target.value)}
                       />
                     </div>
+
+                    {provider === UpdateEventDtoPaymentProvider.ABACATE_PAY && (
+                      <label className="mt-4 flex items-center gap-2.5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={cardEnabled}
+                          onChange={(e) => setCardEnabled(e.target.checked)}
+                          className="h-4 w-4 accent-accent"
+                        />
+                        <span className="text-[13px] text-foreground">
+                          Aceitar pagamento por cartão de crédito
+                        </span>
+                      </label>
+                    )}
                   </div>
 
                   <div className="border-t border-border/40 pt-6 text-sm text-ink-muted">
