@@ -165,6 +165,11 @@ function CheckoutContent() {
   }
 
   const isAbacate = order.payment?.provider === 'ABACATE_PAY' || order.event?.paymentProvider === 'ABACATE_PAY';
+  // Cartão só aparece em eventos ABACATE_PAY que não desabilitaram cartão. PIX sempre.
+  const cardAllowed =
+    order.event?.paymentProvider === 'ABACATE_PAY' &&
+    (order.event?.cardEnabled ?? true);
+  const methodsAvailable = METHODS.filter((m) => m.id !== 'CARD' || cardAllowed);
   const estimatedProcessingFeeCents = !isAbacate
     ? 0
     : method === 'PIX'
@@ -233,7 +238,7 @@ function CheckoutContent() {
               Forma de pagamento
             </h2>
             <div className="grid grid-cols-2 gap-2.5">
-              {METHODS.map((m) => {
+              {methodsAvailable.map((m) => {
                 const active = method === m.id;
                 return (
                   <button
