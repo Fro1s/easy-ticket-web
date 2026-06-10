@@ -18,6 +18,7 @@ import { getAccessToken } from '@/lib/auth';
 import { formatBRLFromCents, formatEventDate, formatTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { posterStyle } from '@/lib/poster';
+import { displaySectorLabel } from '@/lib/sector-label';
 
 const CATEGORY_LABEL: Record<string, string> = {
   SHOW: 'Shows',
@@ -226,7 +227,7 @@ export default function EventDetailPage() {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="text-[15px] font-semibold truncate flex items-center gap-2">
-                        {sector.name}
+                        {displaySectorLabel(sector)}
                         {isCombo && (
                           <span className="text-[10px] font-mono uppercase tracking-[1.5px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-[3px]">
                             Combo {tpu}x
@@ -294,7 +295,7 @@ export default function EventDetailPage() {
                   className="w-2.5 h-2.5 rounded-[2px]"
                   style={{ backgroundColor: selected.colorHex }}
                 />
-                <span className="font-display text-[20px] font-bold">{selected.name}</span>
+                <span className="font-display text-[20px] font-bold">{displaySectorLabel(selected)}</span>
               </div>
             </div>
 

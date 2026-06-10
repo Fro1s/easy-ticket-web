@@ -25,6 +25,7 @@ import {
   attendeesAllValid,
   type AttendeesValue,
 } from '@/components/attendees-form';
+import { ticketLabel } from '@/lib/sector-label';
 
 type Method = keyof typeof OrderPaymentInfoMethod;
 
@@ -280,7 +281,7 @@ function CheckoutContent() {
                     {comboItems.map((item) => (
                       <div key={item.id} className="mb-6">
                         <div className="text-[12px] font-mono text-ink-muted mb-2 uppercase tracking-[1.5px]">
-                          {item.sectorName} · Combo {item.ticketsPerUnit ?? 1}x
+                          {ticketLabel(item.batchName, item.sectorName)} · Combo {item.ticketsPerUnit ?? 1}x
                           {item.qty > 1 ? ` · ${item.qty} unidades` : ''}
                         </div>
                         <AttendeesForm
@@ -571,7 +572,7 @@ function OrderSummaryCard({
                 style={{ backgroundColor: it.sectorColorHex }}
               />
               <span className="truncate">
-                {it.qty}× {it.sectorName}
+                {it.qty}× {ticketLabel(it.batchName, it.sectorName)}
               </span>
             </div>
             <span className="font-mono shrink-0">
