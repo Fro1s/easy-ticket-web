@@ -104,6 +104,7 @@ export default function EventDetailPage() {
   const feePctLabel = (feeRate * 100).toFixed(2).replace(/[.,]?0+$/, '').replace('.', ',');
 
   async function goToCheckout() {
+    if (createOrder.isPending) return; // anti-flood: ignora cliques repetidos
     setOrderError(null);
     if (!getAccessToken()) {
       const next = encodeURIComponent(`/eventos/${event!.slug}`);
