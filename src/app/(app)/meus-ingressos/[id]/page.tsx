@@ -17,6 +17,7 @@ import { formatBRLFromCents, formatEventDate, formatTime } from '@/lib/format';
 import { downloadTicketPdf } from '@/lib/ticket-pdf';
 import { cn } from '@/lib/utils';
 import { posterStyle } from '@/lib/poster';
+import { ticketLabel } from '@/lib/sector-label';
 
 export default function TicketDetailPage() {
   return (
@@ -159,7 +160,7 @@ function TicketView({ ticket }: { ticket: MyTicketItem }) {
                   style={{ backgroundColor: ticket.sector.colorHex }}
                 />
                 <span className="font-display text-[20px] font-bold tracking-[-0.4px]">
-                  {ticket.sector.name}
+                  {ticketLabel(ticket.batchName, ticket.sector.name)}
                 </span>
               </div>
             </DataBlock>

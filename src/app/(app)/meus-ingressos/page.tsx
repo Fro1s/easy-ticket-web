@@ -14,6 +14,7 @@ import {
 import { formatEventDate, formatTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { posterStyle } from '@/lib/poster';
+import { ticketLabel } from '@/lib/sector-label';
 
 type StatusFilter = 'TODOS' | keyof typeof MyTicketItemStatus;
 
@@ -176,7 +177,7 @@ function TicketCardLink({ ticket }: { ticket: MyTicketItem }) {
               className="inline-block w-2 h-2 rounded-[2px] shrink-0"
               style={{ backgroundColor: ticket.sector.colorHex }}
             />
-            {ticket.sector.name}
+            {ticketLabel(ticket.batchName, ticket.sector.name)}
           </div>
           {ticket.holderName && (
             <div className="text-[11px] text-ink-muted mt-1 truncate">

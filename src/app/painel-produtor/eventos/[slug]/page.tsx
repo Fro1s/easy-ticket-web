@@ -54,6 +54,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { posterStyle } from '@/lib/poster';
+import { ticketLabel } from '@/lib/sector-label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 const FILTERS = [
@@ -978,7 +979,7 @@ export default function EventoDetailPage() {
                                 </div>
                               </div>
                               <div className="text-xs text-ink-dim">
-                                <div>{a.sectorName}</div>
+                                <div>{ticketLabel(a.batchName, a.sectorName)}</div>
                                 <div className="font-mono">{a.shortCode}</div>
                               </div>
                               <div>

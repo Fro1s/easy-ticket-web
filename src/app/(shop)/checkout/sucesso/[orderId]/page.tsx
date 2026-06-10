@@ -16,6 +16,7 @@ import { formatBRLFromCents, formatEventDate, formatTime } from '@/lib/format';
 import { buildIcs, downloadIcs } from '@/lib/ics';
 import { downloadOrderTicketsPdf } from '@/lib/ticket-pdf';
 import { posterStyle } from '@/lib/poster';
+import { ticketLabel } from '@/lib/sector-label';
 
 export default function SuccessPage() {
   return (
@@ -119,7 +120,7 @@ function SuccessContent({ name }: { name: string }) {
               venueCity={t.event.venueCity}
               startsAt={t.event.startsAt}
               doorsAt={t.event.doorsAt}
-              sectorName={t.sector.name}
+              sectorName={ticketLabel(t.batchName, t.sector.name)}
               shortCode={t.shortCode}
               posterUrl={t.event.posterUrl}
               ticketId={t.id}
@@ -145,7 +146,7 @@ function SuccessContent({ name }: { name: string }) {
             const ics = buildIcs({
               uid: `easy-ticket-${orderId}@easy-ticket.com.br`,
               title: `${t.event.artist} · ${t.event.title}`,
-              description: `Setor ${t.sector.name}. Portões ${formatTime(t.event.doorsAt)}. Pedido ${shortOrderId}.`,
+              description: `Setor ${ticketLabel(t.batchName, t.sector.name)}. Portões ${formatTime(t.event.doorsAt)}. Pedido ${shortOrderId}.`,
               location: `${t.event.venueName}, ${t.event.venueCity} - ${t.event.venueState}`,
               startsAt: t.event.startsAt,
               endsAt: new Date(

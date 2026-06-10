@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import type { MyTicketItem } from '@/generated/api';
+import { ticketLabel } from '@/lib/sector-label';
 
 function fmtDateTime(iso: string): string {
   try {
@@ -38,7 +39,7 @@ async function renderTicketPage(doc: jsPDF, ticket: MyTicketItem): Promise<void>
     `Data: ${fmtDateTime(ticket.event.startsAt)}`,
     `Abertura: ${fmtDateTime(ticket.event.doorsAt)}`,
     `Local: ${ticket.event.venueName} — ${ticket.event.venueCity}/${ticket.event.venueState}`,
-    `Setor: ${ticket.sector.name}`,
+    `Setor: ${ticketLabel(ticket.batchName, ticket.sector.name)}`,
     holder ? `Portador: ${holder}` : '',
     `Código: ${ticket.shortCode}`,
   ].filter(Boolean);

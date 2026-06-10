@@ -8,12 +8,14 @@ import { Check, X, AlertTriangle, WifiOff, Camera } from 'lucide-react';
 import { RoleGate } from '@/components/role-gate';
 import { useProducerControllerGetEvent } from '@/generated/api';
 import { customInstance } from '@/lib/api';
+import { ticketLabel } from '@/lib/sector-label';
 
 interface ValidateTicketResponse {
   ok: boolean;
   ticket?: {
     shortCode: string;
     sectorName: string;
+    batchName: string | null;
     sectorColor: string;
     holderFirstName: string;
     validatedAt: string;
@@ -26,6 +28,7 @@ type FeedbackKind =
       kind: 'success';
       shortCode: string;
       sectorName: string;
+      batchName: string | null;
       sectorColor: string;
       holderFirstName: string;
     }
@@ -56,7 +59,7 @@ function FeedbackPanel({ feedback }: { feedback: FeedbackKind }) {
         </div>
         <p className="text-4xl font-bold text-green-400">{feedback.holderFirstName}</p>
         <p className="text-sm text-muted-foreground mt-2">
-          {feedback.sectorName} · {feedback.shortCode}
+          {ticketLabel(feedback.batchName, feedback.sectorName)} · {feedback.shortCode}
         </p>
         <div
           className="mt-3 mx-auto w-3 h-3 rounded-full"
@@ -374,6 +377,7 @@ export default function PortariaPage() {
         kind: 'success',
         shortCode: t.shortCode,
         sectorName: t.sectorName,
+        batchName: t.batchName ?? null,
         sectorColor: t.sectorColor,
         holderFirstName: t.holderFirstName,
       });
