@@ -173,6 +173,7 @@ export interface SectorResponse {
   activeBatch: EventBatchInfo | null;
   /** @nullable */
   nextBatch: EventBatchInfo | null;
+  comboBatches: EventBatchInfo[];
 }
 
 export type EventDetailCategory = typeof EventDetailCategory[keyof typeof EventDetailCategory];
@@ -371,9 +372,11 @@ export interface CreateOrderItemDto {
   sectorId: string;
   /**
      * @minimum 1
-     * @maximum 6
+     * @maximum 2
      */
   qty: number;
+  /** Lote específico (combo). Se ausente, resolve o avulso ativo. */
+  batchId?: string;
 }
 
 export interface CreateOrderDto {
@@ -985,6 +988,9 @@ export interface AttendeeSearchItem {
 
 export interface AttendeeSearchResponse {
   items: AttendeeSearchItem[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 export interface SellByEmailDto {
@@ -1325,7 +1331,12 @@ export const ProducerControllerListOrdersStatus = {
 } as const;
 
 export type ProducerControllerSearchAttendeesParams = {
-q: string;
+/**
+ * Busca por e-mail, nome, portador ou código do ingresso (substring)
+ */
+q?: string;
+page?: number;
+pageSize?: number;
 };
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
@@ -4129,7 +4140,7 @@ export type producerControllerSearchAttendeesResponseSuccess = (producerControll
 export type producerControllerSearchAttendeesResponse = (producerControllerSearchAttendeesResponseSuccess)
 
 export const getProducerControllerSearchAttendeesUrl = (slug: string,
-    params: ProducerControllerSearchAttendeesParams,) => {
+    params?: ProducerControllerSearchAttendeesParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -4145,7 +4156,7 @@ export const getProducerControllerSearchAttendeesUrl = (slug: string,
 }
 
 export const producerControllerSearchAttendees = async (slug: string,
-    params: ProducerControllerSearchAttendeesParams, options?: RequestInit): Promise<producerControllerSearchAttendeesResponse> => {
+    params?: ProducerControllerSearchAttendeesParams, options?: RequestInit): Promise<producerControllerSearchAttendeesResponse> => {
 
   return customInstance<producerControllerSearchAttendeesResponse>(getProducerControllerSearchAttendeesUrl(slug,params),
   {
@@ -4169,7 +4180,7 @@ export const getProducerControllerSearchAttendeesQueryKey = (slug: string,
 
 
 export const getProducerControllerSearchAttendeesQueryOptions = <TData = Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError = unknown>(slug: string,
-    params: ProducerControllerSearchAttendeesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    params?: ProducerControllerSearchAttendeesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -4193,7 +4204,7 @@ export type ProducerControllerSearchAttendeesQueryError = unknown
 
 export function useProducerControllerSearchAttendees<TData = Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError = unknown>(
  slug: string,
-    params: ProducerControllerSearchAttendeesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError, TData>> & Pick<
+    params: undefined |  ProducerControllerSearchAttendeesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof producerControllerSearchAttendees>>,
           TError,
@@ -4204,7 +4215,7 @@ export function useProducerControllerSearchAttendees<TData = Awaited<ReturnType<
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useProducerControllerSearchAttendees<TData = Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError = unknown>(
  slug: string,
-    params: ProducerControllerSearchAttendeesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError, TData>> & Pick<
+    params?: ProducerControllerSearchAttendeesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof producerControllerSearchAttendees>>,
           TError,
@@ -4215,7 +4226,7 @@ export function useProducerControllerSearchAttendees<TData = Awaited<ReturnType<
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useProducerControllerSearchAttendees<TData = Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError = unknown>(
  slug: string,
-    params: ProducerControllerSearchAttendeesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    params?: ProducerControllerSearchAttendeesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -4224,7 +4235,7 @@ export function useProducerControllerSearchAttendees<TData = Awaited<ReturnType<
 
 export function useProducerControllerSearchAttendees<TData = Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError = unknown>(
  slug: string,
-    params: ProducerControllerSearchAttendeesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+    params?: ProducerControllerSearchAttendeesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof producerControllerSearchAttendees>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
  , queryClient?: QueryClient
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 

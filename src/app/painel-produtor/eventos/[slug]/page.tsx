@@ -550,6 +550,7 @@ export default function EventoDetailPage() {
   const [sellOpen, setSellOpen] = useState(false);
   const [confirmOrderId, setConfirmOrderId] = useState<string | null>(null);
   const [attendeeQuery, setAttendeeQuery] = useState('');
+  const [attendeePage, setAttendeePage] = useState(1);
   const [confirmTicket, setConfirmTicket] = useState<AttendeeSearchItem | null>(null);
 
   const ev = useProducerControllerGetEvent(slug);
@@ -582,10 +583,10 @@ export default function EventoDetailPage() {
 
   const attendeesRes = useProducerControllerSearchAttendees(
     slug,
-    { q: attendeeQuery },
-    { query: { enabled: attendeeQuery.trim().length >= 2 } },
+    { q: attendeeQuery, page: attendeePage, pageSize: 20 },
   );
-  const attendees = attendeesRes.data?.data.items ?? [];
+  const attendeesData = attendeesRes.data?.data;
+  const attendees = attendeesData?.items ?? [];
 
   const validateManual = useMutation({
     mutationFn: (ticketId: string) =>
@@ -951,73 +952,103 @@ export default function EventoDetailPage() {
                       </div>
                       <Input
                         value={attendeeQuery}
-                        onChange={(e) => setAttendeeQuery(e.target.value)}
+                        onChange={(e) => {
+                          setAttendeeQuery(e.target.value);
+                          setAttendeePage(1);
+                        }}
                         placeholder="E-mail, nome ou código (ex: ET-ABC123XYZ)…"
                         className="mb-4"
                       />
-                      {attendeeQuery.trim().length >= 2 && (
-                        <div className="space-y-2">
-                          {attendeesRes.isFetching && (
-                            <div className="text-ink-dim text-sm">Buscando…</div>
-                          )}
-                          {!attendeesRes.isFetching && attendees.length === 0 && (
-                            <div className="text-center border border-dashed border-border/50 rounded-[6px] p-5 text-sm text-ink-dim">
-                              Nenhum ingresso encontrado.
+                      <div className="space-y-2">
+                        {attendeesRes.isFetching && (
+                          <div className="text-ink-dim text-sm">Buscando…</div>
+                        )}
+                        {!attendeesRes.isFetching && attendees.length === 0 && (
+                          <div className="text-center border border-dashed border-border/50 rounded-[6px] p-5 text-sm text-ink-dim">
+                            {attendeeQuery.trim().length >= 2
+                              ? 'Nenhum ingresso encontrado.'
+                              : 'Nenhum ingresso emitido ainda.'}
+                          </div>
+                        )}
+                        {attendees.map((a: AttendeeSearchItem) => (
+                          <div
+                            key={a.ticketId}
+                            className="grid grid-cols-1 md:grid-cols-[1fr_1fr_120px_auto] gap-3 items-center border border-border/40 bg-ink-deep/40 rounded-[4px] p-3"
+                          >
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium truncate">
+                                {a.holderName ?? a.buyerName ?? a.buyerEmail}
+                              </div>
+                              <div className="text-xs text-ink-dim truncate">
+                                {a.holderEmail ?? a.buyerEmail}
+                              </div>
                             </div>
-                          )}
-                          {attendees.map((a: AttendeeSearchItem) => (
-                            <div
-                              key={a.ticketId}
-                              className="grid grid-cols-1 md:grid-cols-[1fr_1fr_120px_auto] gap-3 items-center border border-border/40 bg-ink-deep/40 rounded-[4px] p-3"
-                            >
-                              <div className="min-w-0">
-                                <div className="text-sm font-medium truncate">
-                                  {a.holderName ?? a.buyerName ?? a.buyerEmail}
+                            <div className="text-xs text-ink-dim">
+                              <div>{ticketLabel(a.batchName, a.sectorName)}</div>
+                              <div className="font-mono">{a.shortCode}</div>
+                            </div>
+                            <div>
+                              <span
+                                className={cn(
+                                  'px-1.5 py-0.5 rounded-[3px] font-mono text-[10px] uppercase tracking-[1.5px]',
+                                  a.status === 'VALID'
+                                    ? 'bg-accent/15 text-accent'
+                                    : a.status === 'USED'
+                                      ? 'bg-green-500/15 text-green-300'
+                                      : 'bg-ink-dim/20 text-ink-dim',
+                                )}
+                              >
+                                {a.status === 'USED' ? 'validado' : a.status}
+                              </span>
+                              {a.status === 'USED' && a.usedAt && (
+                                <div className="text-[10px] text-ink-dim mt-0.5">
+                                  {new Date(a.usedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                 </div>
-                                <div className="text-xs text-ink-dim truncate">
-                                  {a.holderEmail ?? a.buyerEmail}
-                                </div>
-                              </div>
-                              <div className="text-xs text-ink-dim">
-                                <div>{ticketLabel(a.batchName, a.sectorName)}</div>
-                                <div className="font-mono">{a.shortCode}</div>
-                              </div>
-                              <div>
-                                <span
-                                  className={cn(
-                                    'px-1.5 py-0.5 rounded-[3px] font-mono text-[10px] uppercase tracking-[1.5px]',
-                                    a.status === 'VALID'
-                                      ? 'bg-accent/15 text-accent'
-                                      : a.status === 'USED'
-                                        ? 'bg-green-500/15 text-green-300'
-                                        : 'bg-ink-dim/20 text-ink-dim',
-                                  )}
+                              )}
+                            </div>
+                            <div>
+                              {a.status === 'VALID' && (
+                                <Button
+                                  variant="accent"
+                                  size="sm"
+                                  disabled={validateManual.isPending}
+                                  onClick={() => setConfirmTicket(a)}
                                 >
-                                  {a.status === 'USED' ? 'validado' : a.status}
-                                </span>
-                                {a.status === 'USED' && a.usedAt && (
-                                  <div className="text-[10px] text-ink-dim mt-0.5">
-                                    {new Date(a.usedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                  </div>
-                                )}
-                              </div>
-                              <div>
-                                {a.status === 'VALID' && (
-                                  <Button
-                                    variant="accent"
-                                    size="sm"
-                                    disabled={validateManual.isPending}
-                                    onClick={() => setConfirmTicket(a)}
-                                  >
-                                    <Check className="w-4 h-4" />
-                                    Validar
-                                  </Button>
-                                )}
-                              </div>
+                                  <Check className="w-4 h-4" />
+                                  Validar
+                                </Button>
+                              )}
                             </div>
-                          ))}
-                        </div>
-                      )}
+                          </div>
+                        ))}
+                        {attendeesData && attendeesData.total > attendeesData.pageSize && (
+                          <div className="flex items-center justify-between mt-4 gap-3 flex-wrap">
+                            <div className="font-mono text-[10px] tracking-[1.5px] uppercase text-ink-dim">
+                              {(attendeesData.page - 1) * attendeesData.pageSize + 1}
+                              –
+                              {Math.min(attendeesData.page * attendeesData.pageSize, attendeesData.total)} de {attendeesData.total}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setAttendeePage((p) => Math.max(1, p - 1))}
+                                disabled={attendeesData.page <= 1 || attendeesRes.isFetching}
+                              >
+                                Anterior
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setAttendeePage((p) => p + 1)}
+                                disabled={attendeesData.page * attendeesData.pageSize >= attendeesData.total || attendeesRes.isFetching}
+                              >
+                                Próxima
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </section>
                   </TabsContent>
                 </Tabs>

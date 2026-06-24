@@ -92,6 +92,7 @@ function CheckoutContent() {
     attendeesAllValid(
       attendeesByItem[i.id] ?? [],
       i.qty * (i.ticketsPerUnit ?? 1),
+      true,
     ),
   );
 
@@ -299,8 +300,9 @@ function CheckoutContent() {
                       Identificar ingressos
                     </h2>
                     <p className="text-[13px] text-ink-muted mb-4">
-                      Combo emite um ingresso por convidado. Email é opcional —
-                      se preenchido, mandamos o ingresso direto pra pessoa.
+                      Combo emite um ingresso por convidado. Informe o email de
+                      cada pessoa — o ingresso vai direto pra ela, mesmo sem
+                      conta na plataforma.
                     </p>
                     {comboItems.map((item) => (
                       <div key={item.id} className="mb-6">
@@ -319,6 +321,7 @@ function CheckoutContent() {
                               ? { name: user.name ?? '', email: user.email }
                               : undefined
                           }
+                          requireEmail
                         />
                       </div>
                     ))}
