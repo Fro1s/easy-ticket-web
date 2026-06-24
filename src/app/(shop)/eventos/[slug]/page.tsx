@@ -41,6 +41,8 @@ export default function EventDetailPage() {
   const availability = availabilityQuery.data?.data;
 
   const [sectorId, setSectorId] = React.useState<string | null>(null);
+  // batchId do combo selecionado; null = comprar o lote avulso ativo do setor
+  const [selectedComboId, setSelectedComboId] = React.useState<string | null>(null);
   const [qty, setQty] = React.useState(2);
   const [orderError, setOrderError] = React.useState<string | null>(null);
   const createOrder = useOrdersControllerCreate();
@@ -90,10 +92,18 @@ export default function EventDetailPage() {
   const selected = event.sectors.find((s) => s.id === sectorId) ?? event.sectors[0];
   const liveStock = getAvailability(selected, availability?.sectors);
 
-  const maxQty = Math.min(2, Math.max(1, liveStock));
+  const selectedCombo =
+    selectedComboId != null
+      ? selected.comboBatches?.find((c) => c.id === selectedComboId) ?? null
+      : null;
+  const offerBatch = selectedCombo ?? selected.activeBatch;
+  const offerTpu = offerBatch?.ticketsPerUnit ?? 1;
+  const isComboOffer = offerTpu > 1;
+
+  const maxQty = isComboOffer ? 1 : Math.min(2, Math.max(1, liveStock));
   const safeQty = Math.min(qty, maxQty);
 
-  const unitCents = selected.activeBatch?.priceCents ?? 0;
+  const unitCents = offerBatch?.priceCents ?? 0;
   const unit = unitCents / 100;
   const subtotal = unit * safeQty;
   const feeRate = event.platformFeeRate ?? 0;
@@ -115,7 +125,13 @@ export default function EventDetailPage() {
       const res = await createOrder.mutateAsync({
         data: {
           eventSlug: event!.slug,
-          items: [{ sectorId: selected.id, qty: safeQty }],
+          items: [
+            {
+              sectorId: selected.id,
+              qty: safeQty,
+              ...(selectedComboId ? { batchId: selectedComboId } : {}),
+            },
+          ],
         },
       });
       router.push(`/checkout/${res.data.id}`);
@@ -209,55 +225,91 @@ export default function EventDetailPage() {
                 const isCombo = tpu > 1;
                 const priceCents = sector.activeBatch?.priceCents ?? 0;
                 return (
-                  <button
-                    key={sector.id}
-                    type="button"
-                    onClick={() => !soldOut && setSectorId(sector.id)}
-                    disabled={soldOut}
-                    className={cn(
-                      'flex items-center gap-3.5 px-4 py-3.5 rounded-xl border text-left transition-colors',
-                      isSelected
-                        ? 'border-accent bg-accent/[0.08]'
-                        : 'border-border bg-transparent hover:border-foreground',
-                      soldOut && 'opacity-40 cursor-not-allowed hover:border-border'
-                    )}
-                  >
-                    <div
-                      className="w-3 h-3 rounded-[3px] shrink-0"
-                      style={{ backgroundColor: sector.colorHex }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[15px] font-semibold truncate flex items-center gap-2">
-                        {displaySectorLabel(sector)}
-                        {isCombo && (
-                          <span className="text-[10px] font-mono uppercase tracking-[1.5px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-[3px]">
-                            Combo {tpu}x
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] text-ink-muted font-mono mt-0.5">
-                        {soldOut ? 'ESGOTADO' : `${avail.toLocaleString('pt-BR')} disponíveis`}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-display text-[20px] font-bold tracking-[-0.4px]">
-                        {formatBRLFromCents(priceCents)}
-                      </div>
-                      {isCombo && (
-                        <div className="text-[10px] text-ink-muted font-mono">
-                          {formatBRLFromCents(Math.round(priceCents / tpu))} por ingresso
-                        </div>
-                      )}
-                    </div>
-                    <div
+                  <React.Fragment key={sector.id}>
+                    <button
+                      type="button"
+                      onClick={() => { if (!soldOut) { setSectorId(sector.id); setSelectedComboId(null); } }}
+                      disabled={soldOut}
                       className={cn(
-                        'w-5 h-5 rounded-full border-2 grid place-items-center shrink-0',
-                        isSelected ? 'border-accent' : 'border-border'
+                        'flex items-center gap-3.5 px-4 py-3.5 rounded-xl border text-left transition-colors',
+                        isSelected
+                          ? 'border-accent bg-accent/[0.08]'
+                          : 'border-border bg-transparent hover:border-foreground',
+                        soldOut && 'opacity-40 cursor-not-allowed hover:border-border'
                       )}
                     >
-                      {isSelected ? <div className="w-2 h-2 rounded-full bg-accent" /> : null}
-                    </div>
-                  </button>
+                      <div
+                        className="w-3 h-3 rounded-[3px] shrink-0"
+                        style={{ backgroundColor: sector.colorHex }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[15px] font-semibold truncate flex items-center gap-2">
+                          {displaySectorLabel(sector)}
+                          {isCombo && (
+                            <span className="text-[10px] font-mono uppercase tracking-[1.5px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-[3px]">
+                              Combo {tpu}x
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-ink-muted font-mono mt-0.5">
+                          {soldOut ? 'ESGOTADO' : `${avail.toLocaleString('pt-BR')} disponíveis`}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-display text-[20px] font-bold tracking-[-0.4px]">
+                          {formatBRLFromCents(priceCents)}
+                        </div>
+                        {isCombo && (
+                          <div className="text-[10px] text-ink-muted font-mono">
+                            {formatBRLFromCents(Math.round(priceCents / tpu))} por ingresso
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className={cn(
+                          'w-5 h-5 rounded-full border-2 grid place-items-center shrink-0',
+                          isSelected ? 'border-accent' : 'border-border'
+                        )}
+                      >
+                        {isSelected ? <div className="w-2 h-2 rounded-full bg-accent" /> : null}
+                      </div>
+                    </button>
+                    {isSelected && (sector.comboBatches?.length ?? 0) > 0 && (
+                      <div className="flex flex-col gap-2 pl-6 mt-1">
+                        {sector.comboBatches!.map((combo) => {
+                          const comboSelected = selectedComboId === combo.id;
+                          return (
+                            <button
+                              key={combo.id}
+                              type="button"
+                              onClick={() => setSelectedComboId(comboSelected ? null : combo.id)}
+                              className={cn(
+                                'flex items-center gap-3.5 px-4 py-3 rounded-xl border text-left transition-colors',
+                                comboSelected
+                                  ? 'border-accent bg-accent/[0.08]'
+                                  : 'border-border bg-transparent hover:border-foreground',
+                              )}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[14px] font-semibold truncate flex items-center gap-2">
+                                  {combo.name}
+                                  <span className="text-[10px] font-mono uppercase tracking-[1.5px] bg-accent/15 text-accent px-1.5 py-0.5 rounded-[3px]">
+                                    Combo {combo.ticketsPerUnit}x
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-ink-muted font-mono mt-0.5">
+                                  {formatBRLFromCents(Math.round(combo.priceCents / combo.ticketsPerUnit))} por ingresso
+                                </div>
+                              </div>
+                              <div className="font-display text-[18px] font-bold tracking-[-0.4px]">
+                                {formatBRLFromCents(combo.priceCents)}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </div>
@@ -298,6 +350,11 @@ export default function EventDetailPage() {
                 />
                 <span className="font-display text-[20px] font-bold">{displaySectorLabel(selected)}</span>
               </div>
+              {selectedCombo && (
+                <div className="text-[12px] text-accent font-mono mt-1">
+                  {selectedCombo.name} · Combo {selectedCombo.ticketsPerUnit}x
+                </div>
+              )}
             </div>
 
             <div className="py-5 border-b border-dashed border-border">
