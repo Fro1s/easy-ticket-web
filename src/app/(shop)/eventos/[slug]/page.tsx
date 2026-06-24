@@ -13,6 +13,7 @@ import {
   useEventsControllerAvailability,
   useOrdersControllerCreate,
   type SectorResponse,
+  type EventBatchInfo,
 } from '@/generated/api';
 import { getAccessToken } from '@/lib/auth';
 import { formatBRLFromCents, formatEventDate, formatTime } from '@/lib/format';
@@ -90,7 +91,6 @@ export default function EventDetailPage() {
   }
 
   const selected = event.sectors.find((s) => s.id === sectorId) ?? event.sectors[0];
-  const liveStock = getAvailability(selected, availability?.sectors);
 
   const selectedCombo =
     selectedComboId != null
@@ -99,6 +99,10 @@ export default function EventDetailPage() {
   const offerBatch = selectedCombo ?? selected.activeBatch;
   const offerTpu = offerBatch?.ticketsPerUnit ?? 1;
   const isComboOffer = offerTpu > 1;
+
+  // Estoque da OFERTA selecionada (lote avulso ou combo), não do setor agregado.
+  // Lote/combo têm estoques independentes — combo de 3 não compartilha com o lote único.
+  const liveStock = getOfferAvailability(selected, offerBatch, selectedCombo, availability?.sectors);
 
   const maxQty = isComboOffer ? 1 : Math.min(2, Math.max(1, liveStock));
   const safeQty = Math.min(qty, maxQty);
@@ -218,7 +222,7 @@ export default function EventDetailPage() {
 
             <div className="flex flex-col gap-2">
               {event.sectors.map((sector) => {
-                const avail = getAvailability(sector, availability?.sectors);
+                const avail = getOfferAvailability(sector, sector.activeBatch, null, availability?.sectors);
                 const soldOut = avail <= 0;
                 const isSelected = sector.id === selected.id;
                 const tpu = sector.activeBatch?.ticketsPerUnit ?? 1;
@@ -451,13 +455,22 @@ export default function EventDetailPage() {
   );
 }
 
-function getAvailability(
+// Estoque da OFERTA específica (lote avulso ou combo), nunca do setor agregado.
+// Cada lote/combo tem capacidade própria e independente — um combo de 3 pessoas
+// não compartilha estoque com o lote único, então cada um exibe o seu próprio número.
+function getOfferAvailability(
   sector: SectorResponse,
+  offer: EventBatchInfo | null,
+  combo: EventBatchInfo | null,
   live: { id: string; available: number }[] | undefined
 ) {
+  // Combos não têm availability "live" por lote — usa o estoque do próprio combo.
+  if (combo) return Math.max(0, combo.available);
+  // Lote avulso: prefere o número "live" do setor (que o backend calcula a partir
+  // do lote ativo) e cai no estoque do próprio activeBatch quando ainda não chegou.
   const match = live?.find((a) => a.id === sector.id);
-  if (match) return match.available;
-  return Math.max(0, sector.capacity - sector.sold - sector.reserved);
+  if (match) return Math.max(0, match.available);
+  return Math.max(0, offer?.available ?? 0);
 }
 
 function InfoCard({

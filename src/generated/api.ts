@@ -155,6 +155,8 @@ export interface EventBatchInfo {
   name: string;
   priceCents: number;
   ticketsPerUnit: number;
+  /** Estoque disponível deste lote (capacity - sold - reserved). */
+  available: number;
   /** @nullable */
   startsAt: string | null;
   /** @nullable */
