@@ -173,6 +173,7 @@ export interface SectorResponse {
   activeBatch: EventBatchInfo | null;
   /** @nullable */
   nextBatch: EventBatchInfo | null;
+  comboBatches: EventBatchInfo[];
 }
 
 export type EventDetailCategory = typeof EventDetailCategory[keyof typeof EventDetailCategory];
@@ -374,6 +375,8 @@ export interface CreateOrderItemDto {
      * @maximum 2
      */
   qty: number;
+  /** Lote específico (combo). Se ausente, resolve o avulso ativo. */
+  batchId?: string;
 }
 
 export interface CreateOrderDto {
