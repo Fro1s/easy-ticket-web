@@ -48,7 +48,7 @@ async function callTransferApi(
   payload: RecipientPayload,
 ): Promise<TransferResponse> {
   const { data } = await AXIOS_INSTANCE.post<TransferResponse>(
-    `/api/v1/tickets/${ticketId}/transfer`,
+    `/api/v1/tickets/${encodeURIComponent(ticketId)}/transfer`,
     payload,
   )
   return data
@@ -67,11 +67,28 @@ export function TransferTicketDialog({
   const [fieldError, setFieldError] = React.useState<string | null>(null)
   const [apiError, setApiError] = React.useState<string | null>(null)
 
+  const mutation = useMutation({
+    mutationFn: () => {
+      const payload = parseRecipient(recipient)
+      if (!payload) throw new Error('Invalid recipient')
+      return callTransferApi(ticketId, payload)
+    },
+    onSuccess: () => {
+      setOpen(false)
+      toast.success('Ingresso transferido com sucesso!')
+      router.push('/meus-ingressos')
+    },
+    onError: (error) => {
+      setApiError(mapApiError(error))
+    },
+  })
+
   function reset() {
     setStep('idle')
     setRecipient('')
     setFieldError(null)
     setApiError(null)
+    mutation.reset()
   }
 
   function handleOpenChange(next: boolean) {
@@ -98,21 +115,6 @@ export function TransferTicketDialog({
     }
     setStep('confirming')
   }
-
-  const mutation = useMutation({
-    mutationFn: () => {
-      const payload = parseRecipient(recipient)!
-      return callTransferApi(ticketId, payload)
-    },
-    onSuccess: () => {
-      setOpen(false)
-      toast.success('Ingresso transferido com sucesso!')
-      router.push('/meus-ingressos')
-    },
-    onError: (error) => {
-      setApiError(mapApiError(error))
-    },
-  })
 
   const parsed = step === 'confirming' ? parseRecipient(recipient) : null
   const recipientDisplay = parsed
