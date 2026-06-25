@@ -18,6 +18,7 @@ import { downloadTicketPdf } from '@/lib/ticket-pdf';
 import { cn } from '@/lib/utils';
 import { posterStyle } from '@/lib/poster';
 import { ticketLabel } from '@/lib/sector-label';
+import { TransferTicketDialog } from '@/components/transfer-ticket-dialog';
 
 export default function TicketDetailPage() {
   return (
@@ -188,9 +189,17 @@ function TicketView({ ticket }: { ticket: MyTicketItem }) {
             ) : null}
 
             <div className="pt-4 border-t border-border flex flex-wrap gap-2">
-              <Button variant="ghost" size="sm" disabled>
-                Transferir (em breve)
-              </Button>
+              {isValid && (
+                <TransferTicketDialog
+                  ticketId={ticket.id}
+                  shortCode={ticket.shortCode}
+                  sectorName={ticket.sector.name}
+                >
+                  <Button variant="ghost" size="sm">
+                    Transferir
+                  </Button>
+                </TransferTicketDialog>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
