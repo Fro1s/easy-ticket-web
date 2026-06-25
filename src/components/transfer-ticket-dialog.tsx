@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { AXIOS_INSTANCE } from '@/lib/api'
@@ -61,6 +61,7 @@ export function TransferTicketDialog({
   children,
 }: TransferTicketDialogProps) {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [open, setOpen] = React.useState(false)
   const [step, setStep] = React.useState<Step>('idle')
   const [recipient, setRecipient] = React.useState('')
@@ -75,6 +76,7 @@ export function TransferTicketDialog({
     },
     onSuccess: () => {
       setOpen(false)
+      void queryClient.invalidateQueries({ queryKey: ['/api/v1/me/tickets'] })
       toast.success('Ingresso transferido com sucesso!')
       router.push('/meus-ingressos')
     },
@@ -186,7 +188,17 @@ export function TransferTicketDialog({
               </p>
               <p className="font-mono text-[15px] font-semibold break-all">{recipientDisplay}</p>
               <p className="text-[12px] text-ink-muted">⚠ Essa ação não pode ser desfeita.</p>
-              {apiError && <p className="text-[12px] text-destructive">{apiError}</p>}
+              {apiError && (
+                <p
+                  className={
+                    apiError === 'Essa pessoa não tem conta no Easy Ticket.'
+                      ? 'text-[13px] font-bold text-destructive bg-destructive/10 border border-destructive/30 rounded-[6px] px-3 py-2'
+                      : 'text-[12px] text-destructive'
+                  }
+                >
+                  {apiError}
+                </p>
+              )}
             </div>
 
             <DialogFooter>

@@ -57,7 +57,6 @@ function TicketsContent() {
       </h1>
       <p className="text-ink-muted text-[15px] max-w-[520px]">
         Acesse o QR no dia do evento. Quer transferir pra alguém da galera?{' '}
-        <span className="text-ink-dim">Em breve — Phase 5.</span>
       </p>
 
       <div className="flex gap-2.5 flex-wrap mt-8 mb-8">

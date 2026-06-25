@@ -189,7 +189,7 @@ function TicketView({ ticket }: { ticket: MyTicketItem }) {
             ) : null}
 
             <div className="pt-4 border-t border-border flex flex-wrap gap-2">
-              {isValid && (
+              {isValid ? (
                 <TransferTicketDialog
                   ticketId={ticket.id}
                   shortCode={ticket.shortCode}
@@ -199,6 +199,10 @@ function TicketView({ ticket }: { ticket: MyTicketItem }) {
                     Transferir
                   </Button>
                 </TransferTicketDialog>
+              ) : (
+                <Button variant="ghost" size="sm" disabled>
+                  Transferir
+                </Button>
               )}
               <Button
                 variant="ghost"
