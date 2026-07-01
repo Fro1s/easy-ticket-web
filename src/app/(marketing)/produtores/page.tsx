@@ -104,7 +104,7 @@ export default function ProdutoresPage() {
                   Quero vender aqui →
                 </Button>
               </Link>
-              <a href="mailto:produtores@easyticket.com.br">
+              <a href="mailto:viniciusgbasilio@gmail.com">
                 <Button variant="ghost" size="lg">
                   Falar com vendas
                 </Button>
@@ -217,7 +217,7 @@ export default function ProdutoresPage() {
               uma proposta clara — sem letrinha miúda, sem call de uma hora.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
-              <a href="mailto:produtores@easyticket.com.br?subject=Quero vender na Easy Ticket">
+              <a href="mailto:viniciusgbasilio@gmail.com?subject=Quero vender na Easy Ticket">
                 <Button variant="accent" size="lg">
                   Falar com vendas →
                 </Button>
@@ -229,7 +229,7 @@ export default function ProdutoresPage() {
               </Link>
             </div>
             <div className="mt-8 font-mono text-[11px] text-ink-dim tracking-[1px]">
-              produtores@easyticket.com.br · (11) 4040-0000
+              viniciusgbasilio@gmail.com · (12) 98309-6471
             </div>
           </div>
         </div>
