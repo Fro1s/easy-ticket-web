@@ -34,3 +34,8 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Environment
+
+- `NEXT_PUBLIC_API_URL` — backend base URL (default `http://localhost:3001`).
+- `NEXT_PUBLIC_SITE_URL` — the site's public URL, used for `metadataBase`, canonical URLs, OpenGraph images and the sitemap (default `http://localhost:3000`). Set this to the production domain on Vercel.
