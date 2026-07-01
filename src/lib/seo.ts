@@ -28,3 +28,34 @@ export function buildEventMetadata(e: EventMetaSource): Metadata {
     alternates: { canonical: `/eventos/${e.slug}` },
   }
 }
+
+export async function fetchEventForMeta(slug: string): Promise<EventMetaSource | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/events/${slug}`, { next: { revalidate: 300 } });
+    if (!res.ok) return null;
+    return (await res.json()) as EventMetaSource;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchPublishedEventSlugs(maxPages = 10, pageSize = 100): Promise<string[]> {
+  const slugs: string[] = [];
+  for (let page = 1; page <= maxPages; page++) {
+    let data: { items?: { slug?: string }[]; total?: number } | null = null;
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/events?page=${page}&pageSize=${pageSize}`, {
+        next: { revalidate: 3600 },
+      });
+      if (!res.ok) break;
+      data = await res.json();
+    } catch {
+      break;
+    }
+    const items = data?.items ?? [];
+    for (const it of items) if (it?.slug) slugs.push(it.slug);
+    const total = data?.total ?? slugs.length;
+    if (items.length < pageSize || slugs.length >= total) break;
+  }
+  return slugs;
+}
