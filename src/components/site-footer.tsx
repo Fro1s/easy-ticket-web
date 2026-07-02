@@ -27,7 +27,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="text-[11px] text-ink-dim font-mono">
-        © 2026 Easy Ticket · CNPJ 00.000.000/0001-00 · SAC 0800-000-0000
+        © {new Date().getFullYear()} Easy Ticket · CNPJ 59.090.323/0001-66 · Contato (12) 99123-1603
       </div>
     </footer>
   );
