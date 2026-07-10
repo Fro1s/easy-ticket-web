@@ -41,10 +41,12 @@ import {
   CreateEventDtoPixKeyType,
   useProducerControllerCreateEvent,
   useVenuesControllerList,
+  useAdminControllerListProducers,
   getVenuesControllerListQueryKey,
 } from '@/generated/api';
 import type { CreateEventDto, VenueResponse } from '@/generated/api';
 import { CATEGORY_PT, PAYMENT_PROVIDER_PT, PIX_KEY_TYPE_PT, BR_STATES } from '@/lib/i18n';
+import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 
 type SectorRow = {
@@ -324,11 +326,16 @@ function NewVenueDialog({
 
 export default function NovoEventoPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const venuesQ = useVenuesControllerList();
+  // ADMIN precisa escolher o produtor dono; PRODUCER usa sempre o próprio vínculo.
+  const producersQ = useAdminControllerListProducers({ query: { enabled: isAdmin } });
   const create = useProducerControllerCreateEvent();
   const [error, setError] = useState<string | null>(null);
 
   // Form state
+  const [producerId, setProducerId] = useState('');
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [category, setCategory] = useState<CreateEventDto['category']>(CreateEventDtoCategory.SHOW);
@@ -360,9 +367,11 @@ export default function NovoEventoPage() {
   ]);
 
   const venues = venuesQ.data?.data ?? [];
+  const producers = producersQ.data?.data.items ?? [];
 
   const validation = useMemo(() => {
     const errs: string[] = [];
+    if (isAdmin && !producerId) errs.push('Escolha o produtor dono do evento.');
     if (!title.trim()) errs.push('Informe o título.');
     if (!artist.trim()) errs.push('Informe o artista.');
     if (!venueId) errs.push('Escolha o local.');
@@ -390,6 +399,7 @@ export default function NovoEventoPage() {
     });
     return { errs, startsAt, doorsAt };
   }, [
+    isAdmin, producerId,
     title, artist, venueId, posterUrl, description, startsDate, startsTime,
     doorsDate, doorsTime, feePercent, provider, pixKey, pixHolderName, sectors,
   ]);
@@ -415,6 +425,7 @@ export default function NovoEventoPage() {
       posterUrl: posterUrl.trim(),
       description: description.trim(),
       venueId,
+      producerId: isAdmin && producerId ? producerId : undefined,
       paymentProvider: provider,
       pixKey: pixKey.trim() || undefined,
       pixKeyType: pixKey.trim() ? pixKeyType : undefined,
@@ -471,6 +482,33 @@ export default function NovoEventoPage() {
             </h1>
 
             <form onSubmit={onSubmit} className="space-y-6">
+              {isAdmin && (
+                <div className="space-y-2 border border-accent/30 bg-accent/5 rounded-[6px] p-4">
+                  <Label className="font-mono text-[11px] tracking-[2px] uppercase text-accent">
+                    Produtor dono *
+                  </Label>
+                  <Select
+                    value={producerId}
+                    onValueChange={(v) => v && setProducerId(v)}
+                    items={producers.map((p) => ({ value: p.id, label: p.name }))}
+                  >
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="— escolha o produtor —" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {producers.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-ink-dim">
+                    Como admin, você cria o evento em nome de um produtor específico.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label className="font-mono text-[11px] tracking-[2px] uppercase text-ink-dim">Título *</Label>
                 <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
