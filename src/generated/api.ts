@@ -1176,6 +1176,20 @@ export interface SharedTicketResponse {
   sector: SharedTicketSector;
 }
 
+export interface TransferTicketDto {
+  /** Email do destinatário. Obrigatório se cpf não for informado. */
+  email?: string;
+  /** CPF do destinatário (com ou sem máscara). Obrigatório se email não for informado. */
+  cpf?: string;
+}
+
+export interface TransferTicketResponse {
+  id: string;
+  shortCode: string;
+  status: string;
+  recipientEmail: string;
+}
+
 export interface AdminProducerUser {
   id: string;
   /** @nullable */
@@ -1242,6 +1256,10 @@ export interface FeatureEventDto {
 }
 
 export type EventsControllerListParams = {
+/**
+ * Time window: 'upcoming' (default) returns events from now on (soonest first); 'past' returns events that already started (most recent first).
+ */
+when?: EventsControllerListWhen;
 category?: EventsControllerListCategory;
 city?: string;
 /**
@@ -1252,6 +1270,14 @@ q?: string;
 page?: number;
 pageSize?: number;
 };
+
+export type EventsControllerListWhen = typeof EventsControllerListWhen[keyof typeof EventsControllerListWhen];
+
+
+export const EventsControllerListWhen = {
+  upcoming: 'upcoming',
+  past: 'past',
+} as const;
 
 export type EventsControllerListCategory = typeof EventsControllerListCategory[keyof typeof EventsControllerListCategory];
 
@@ -5162,6 +5188,90 @@ export function useTicketsControllerShare<TData = Awaited<ReturnType<typeof tick
 
 
 
+
+/**
+ * @summary Transfere o ticket (do usuário logado) para outro usuário já cadastrado, por email ou CPF.
+ */
+export type ticketsControllerTransferResponse201 = {
+  data: TransferTicketResponse
+  status: 201
+}
+
+export type ticketsControllerTransferResponseSuccess = (ticketsControllerTransferResponse201) & {
+  headers: Headers;
+};
+;
+
+export type ticketsControllerTransferResponse = (ticketsControllerTransferResponseSuccess)
+
+export const getTicketsControllerTransferUrl = (id: string,) => {
+
+
+
+
+  return `/api/v1/tickets/${id}/transfer`
+}
+
+export const ticketsControllerTransfer = async (id: string,
+    transferTicketDto: TransferTicketDto, options?: RequestInit): Promise<ticketsControllerTransferResponse> => {
+
+  return customInstance<ticketsControllerTransferResponse>(getTicketsControllerTransferUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      transferTicketDto,)
+  }
+);}
+
+
+
+
+export const getTicketsControllerTransferMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ticketsControllerTransfer>>, TError,{id: string;data: TransferTicketDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof ticketsControllerTransfer>>, TError,{id: string;data: TransferTicketDto}, TContext> => {
+
+const mutationKey = ['ticketsControllerTransfer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ticketsControllerTransfer>>, {id: string;data: TransferTicketDto}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  ticketsControllerTransfer(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TicketsControllerTransferMutationResult = NonNullable<Awaited<ReturnType<typeof ticketsControllerTransfer>>>
+    export type TicketsControllerTransferMutationBody = TransferTicketDto
+    export type TicketsControllerTransferMutationError = unknown
+
+    /**
+ * @summary Transfere o ticket (do usuário logado) para outro usuário já cadastrado, por email ou CPF.
+ */
+export const useTicketsControllerTransfer = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ticketsControllerTransfer>>, TError,{id: string;data: TransferTicketDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof ticketsControllerTransfer>>,
+        TError,
+        {id: string;data: TransferTicketDto},
+        TContext
+      > => {
+      return useMutation(getTicketsControllerTransferMutationOptions(options), queryClient);
+    }
 
 /**
  * @summary List organizations with their logins and event counts
