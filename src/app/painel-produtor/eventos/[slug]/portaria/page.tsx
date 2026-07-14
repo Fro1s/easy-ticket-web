@@ -305,7 +305,13 @@ export default function PortariaPage() {
   const [sessionCount, setSessionCount] = useState(0);
   const [isOffline, setIsOffline] = useState(false);
 
-  const { data: eventRes, refetch: refetchEvent } = useProducerControllerGetEvent(slug);
+  // Poll the event KPIs so multiple check-in lanes converge on the same
+  // validated count within a few seconds (each device otherwise only saw its
+  // own scans). Interim measure until a per-event realtime push (SSE) lands.
+  const { data: eventRes, refetch: refetchEvent } = useProducerControllerGetEvent(
+    slug,
+    { query: { refetchInterval: 3000 } },
+  );
   const totalTickets =
     (eventRes as { data?: { kpis?: { ticketsSold?: number } } })?.data?.kpis
       ?.ticketsSold ?? '?';
