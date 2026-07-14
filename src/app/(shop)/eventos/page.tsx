@@ -9,6 +9,7 @@ import { CategoryChip } from '@/components/category-chip';
 import {
   useEventsControllerList,
   EventsControllerListCategory,
+  EventsControllerListWhen,
 } from '@/generated/api';
 
 const CATEGORIES: { key: 'TODOS' | keyof typeof EventsControllerListCategory; label: string }[] = [
@@ -54,6 +55,7 @@ function EventosBrowser() {
   const urlCategory = (params.get('cat') ?? 'TODOS') as typeof CATEGORIES[number]['key'];
   const urlCity = params.get('cidade') ?? '';
   const urlQuery = params.get('q') ?? '';
+  const urlWhen = params.get('quando') === 'anteriores' ? 'anteriores' : 'proximos';
 
   const [city, setCity] = React.useState(urlCity);
   const [query, setQuery] = React.useState(urlQuery);
@@ -74,6 +76,10 @@ function EventosBrowser() {
   const { data, isLoading, isError } = useEventsControllerList({
     page: 1,
     pageSize: 60,
+    when:
+      urlWhen === 'anteriores'
+        ? EventsControllerListWhen.past
+        : EventsControllerListWhen.upcoming,
     ...(urlCategory !== 'TODOS' ? { category: urlCategory } : {}),
     ...(urlCity ? { city: urlCity } : {}),
     ...(urlQuery ? { q: urlQuery } : {}),
@@ -124,6 +130,27 @@ function EventosBrowser() {
 
       <section className="px-6 md:px-16 max-w-[1440px] mx-auto pb-16">
         <div className="flex flex-col gap-4 mb-8">
+          <div className="flex gap-2">
+            {[
+              { key: 'proximos', label: 'Próximos' },
+              { key: 'anteriores', label: 'Anteriores' },
+            ].map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() =>
+                  updateParams({ quando: t.key === 'anteriores' ? 'anteriores' : null })
+                }
+                className={
+                  urlWhen === t.key
+                    ? 'h-9 px-4 rounded-full text-sm font-semibold bg-accent text-accent-ink'
+                    : 'h-9 px-4 rounded-full text-sm font-semibold bg-input text-ink-muted border border-border hover:text-foreground transition-colors'
+                }
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
           <div className="flex gap-2.5 flex-wrap">
             {CATEGORIES.map((c) => (
               <CategoryChip
@@ -202,7 +229,9 @@ function EventosBrowser() {
               Nada por aqui ainda.
             </div>
             <div className="text-ink-muted text-sm">
-              Tente outra categoria ou limpe os filtros.
+              {urlWhen === 'anteriores'
+                ? 'Nenhum evento anterior por aqui.'
+                : 'Tente outra categoria ou limpe os filtros.'}
             </div>
           </div>
         ) : (
