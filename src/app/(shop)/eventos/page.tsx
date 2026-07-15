@@ -135,20 +135,14 @@ function EventosBrowser() {
               { key: 'proximos', label: 'Próximos' },
               { key: 'anteriores', label: 'Anteriores' },
             ].map((t) => (
-              <button
+              <CategoryChip
                 key={t.key}
-                type="button"
+                label={t.label}
+                active={urlWhen === t.key}
                 onClick={() =>
                   updateParams({ quando: t.key === 'anteriores' ? 'anteriores' : null })
                 }
-                className={
-                  urlWhen === t.key
-                    ? 'h-9 px-4 rounded-full text-sm font-semibold bg-accent text-accent-ink'
-                    : 'h-9 px-4 rounded-full text-sm font-semibold bg-input text-ink-muted border border-border hover:text-foreground transition-colors'
-                }
-              >
-                {t.label}
-              </button>
+              />
             ))}
           </div>
           <div className="flex gap-2.5 flex-wrap">
