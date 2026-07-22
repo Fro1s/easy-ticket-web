@@ -4,6 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
+import { toast } from 'sonner';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,12 @@ import { cn } from '@/lib/utils';
 import { posterStyle } from '@/lib/poster';
 import { ticketLabel } from '@/lib/sector-label';
 import { TransferTicketDialog } from '@/components/transfer-ticket-dialog';
+import {
+  appleWalletEnabled,
+  downloadApplePass,
+  googleWalletEnabled,
+  openGoogleWallet,
+} from '@/lib/wallet';
 
 export default function TicketDetailPage() {
   return (
@@ -211,6 +218,32 @@ function TicketView({ ticket }: { ticket: MyTicketItem }) {
               >
                 Baixar PDF
               </Button>
+              {googleWalletEnabled && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    openGoogleWallet(ticket.id).catch(() =>
+                      toast.error('Google Wallet indisponível no momento.'),
+                    )
+                  }
+                >
+                  Adicionar ao Google Wallet
+                </Button>
+              )}
+              {appleWalletEnabled && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    downloadApplePass(ticket.id, ticket.shortCode).catch(() =>
+                      toast.error('Apple Wallet indisponível no momento.'),
+                    )
+                  }
+                >
+                  Adicionar ao Apple Wallet
+                </Button>
+              )}
             </div>
           </div>
         </div>
