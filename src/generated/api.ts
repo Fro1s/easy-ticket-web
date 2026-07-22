@@ -544,6 +544,7 @@ export const CheckoutOrderDtoMethod = {
 
 export interface CheckoutOrderDto {
   method: CheckoutOrderDtoMethod;
+  phone?: string;
 }
 
 export type ConfirmedOrderResponseStatus = typeof ConfirmedOrderResponseStatus[keyof typeof ConfirmedOrderResponseStatus];

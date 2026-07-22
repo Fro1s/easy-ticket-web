@@ -62,6 +62,7 @@ function CheckoutContent() {
 
   const [method, setMethod] = React.useState<Method>('PIX');
   const [error, setError] = React.useState<string | null>(null);
+  const [waPhone, setWaPhone] = React.useState('');
   const [attendeesByItem, setAttendeesByItem] = React.useState<
     Record<string, AttendeesValue>
   >({});
@@ -206,7 +207,7 @@ function CheckoutContent() {
           },
         });
       }
-      await checkoutMut.mutateAsync({ id: orderId, data: { method } });
+      await checkoutMut.mutateAsync({ id: orderId, data: { method, phone: waPhone.trim() || undefined } });
       // refetch to get the payment info
       await orderQuery.refetch();
     } catch (err: unknown) {
@@ -327,6 +328,26 @@ function CheckoutContent() {
                     ))}
                   </section>
                 )}
+                <div className="space-y-1 mt-6">
+                  <label
+                    htmlFor="wa-phone"
+                    className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground"
+                  >
+                    WhatsApp (opcional)
+                  </label>
+                  <input
+                    id="wa-phone"
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="(14) 99999-9999"
+                    value={waPhone}
+                    onChange={(e) => setWaPhone(e.target.value)}
+                    className="w-full rounded-[4px] border border-border bg-transparent px-3 py-2 text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Receba seus ingressos também no WhatsApp assim que o pagamento confirmar.
+                  </p>
+                </div>
                 <Button
                   variant="accent"
                   size="lg"
