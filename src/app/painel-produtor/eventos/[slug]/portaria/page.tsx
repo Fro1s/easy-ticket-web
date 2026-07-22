@@ -537,6 +537,12 @@ export default function PortariaPage() {
       if (!local || !eventId || local.pending.length === 0) return;
       if (syncingRef.current) return;
       syncingRef.current = true;
+      // Snapshot exactly which items we're sending. On success we remove ONLY
+      // these from the CURRENT queue (which may have grown mid-flight from an
+      // offline scan) — never blindly reset to [], or a validation enqueued
+      // while this POST was in flight would be silently dropped and never resent.
+      const sentItems = local.pending;
+      const sentIds = new Set(sentItems.map((p) => p.ticketId));
       try {
         const res = await customInstance<{
           data: {
@@ -550,16 +556,18 @@ export default function PortariaPage() {
         }>('/api/v1/producer/tickets/validate-batch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ eventId, items: local.pending }),
+          body: JSON.stringify({ eventId, items: sentItems }),
         });
         const conflicts = res.data.results.filter(
           (r) => !r.ok && r.reason === 'ALREADY_USED',
         ).length;
         if (conflicts > 0) setConflictCount((c) => c + conflicts);
-        const next = { ...local, pending: [] };
+        const current = stateRef.current ?? local;
+        const remaining = current.pending.filter((p) => !sentIds.has(p.ticketId));
+        const next = { ...current, pending: remaining };
         stateRef.current = next;
         void saveState(slug, next);
-        setPendingCount(0);
+        setPendingCount(remaining.length);
         setIsOffline(false);
         void refetchEvent();
       } catch {
