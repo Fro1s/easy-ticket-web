@@ -9,6 +9,14 @@ import { RoleGate } from '@/components/role-gate';
 import { useProducerControllerGetEvent } from '@/generated/api';
 import { customInstance } from '@/lib/api';
 import { ticketLabel } from '@/lib/sector-label';
+import {
+  applyLocalValidation,
+  buildState,
+  loadState,
+  saveState,
+  sha256Hex,
+  type PortariaState,
+} from '@/lib/portaria-offline';
 
 interface ValidateTicketResponse {
   ok: boolean;
@@ -305,6 +313,13 @@ export default function PortariaPage() {
   const [sessionCount, setSessionCount] = useState(0);
   const [isOffline, setIsOffline] = useState(false);
 
+  const stateRef = useRef<PortariaState | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [conflictCount, setConflictCount] = useState(0);
+  const [offlineReady, setOfflineReady] = useState(false);
+  const eventIdRef = useRef<string | null>(null);
+  const syncingRef = useRef(false);
+
   const { data: eventRes, refetch: refetchEvent } = useProducerControllerGetEvent(slug);
   const totalTickets =
     (eventRes as { data?: { kpis?: { ticketsSold?: number } } })?.data?.kpis
@@ -328,6 +343,45 @@ export default function PortariaPage() {
   useEffect(() => {
     mutateRef.current = validateMutation.mutateAsync;
   });
+
+  useEffect(() => {
+    let cancelled = false;
+    async function bootstrap() {
+      // 1. estado salvo primeiro: se abrir já sem rede, ainda funciona
+      const saved = await loadState(slug);
+      if (saved && !cancelled) {
+        stateRef.current = saved;
+        setPendingCount(saved.pending.length);
+        setOfflineReady(true);
+      }
+      // 2. manifest fresco quando houver rede
+      try {
+        const res = await customInstance<{
+          data: {
+            eventId: string;
+            generatedAt: string;
+            tickets: Parameters<typeof buildState>[0];
+          };
+        }>(`/api/v1/producer/events/${slug}/portaria-manifest`);
+        if (cancelled) return;
+        eventIdRef.current = res.data.eventId;
+        const fresh = buildState(
+          res.data.tickets,
+          stateRef.current?.pending ?? [],
+        );
+        stateRef.current = fresh;
+        await saveState(slug, fresh);
+        setPendingCount(fresh.pending.length);
+        setOfflineReady(true);
+      } catch {
+        // sem rede no bootstrap: segue com o estado salvo (se houver)
+      }
+    }
+    void bootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
 
   function primeAudio() {
     if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
@@ -372,6 +426,24 @@ export default function PortariaPage() {
       setIsOffline(false);
       const t = res.data.ticket!;
       setSessionCount((c) => c + 1);
+
+      const localState = stateRef.current;
+      if (localState) {
+        const hash = await sha256Hex(token);
+        const known = localState.byHash[hash];
+        if (known && known.status === 'VALID') {
+          const next = {
+            ...localState,
+            byHash: {
+              ...localState.byHash,
+              [hash]: { ...known, status: 'USED', usedAt: new Date().toISOString() },
+            },
+          };
+          stateRef.current = next;
+          void saveState(slug, next);
+        }
+      }
+
       void refetchEvent();
       setFeedback({
         kind: 'success',
@@ -390,10 +462,46 @@ export default function PortariaPage() {
       const body = axiosErr?.response?.data;
 
       if (!status) {
-        consecutiveFailRef.current++;
-        if (consecutiveFailRef.current >= 3) setIsOffline(true);
-        setFeedback({ kind: 'network_error' });
-        playBeep('warn');
+        // servidor inalcançável → valida contra o manifest local
+        const local = stateRef.current;
+        if (!local) {
+          consecutiveFailRef.current++;
+          if (consecutiveFailRef.current >= 3) setIsOffline(true);
+          setFeedback({ kind: 'network_error' });
+          playBeep('warn');
+        } else {
+          setIsOffline(true);
+          const hash = await sha256Hex(token);
+          const { state: next, result } = applyLocalValidation(
+            local,
+            hash,
+            new Date().toISOString(),
+          );
+          stateRef.current = next;
+          void saveState(slug, next);
+          setPendingCount(next.pending.length);
+          if (result.kind === 'success') {
+            setSessionCount((c) => c + 1);
+            setFeedback({
+              kind: 'success',
+              shortCode: result.ticket.shortCode,
+              sectorName: result.ticket.sectorName,
+              batchName: result.ticket.batchName,
+              sectorColor: result.ticket.sectorColor,
+              holderFirstName: result.ticket.holderFirstName,
+            });
+            playBeep('success');
+          } else if (result.kind === 'already_used') {
+            setFeedback({ kind: 'already_used', usedAt: result.usedAt ?? '' });
+            playBeep('error');
+          } else if (result.kind === 'not_found') {
+            setFeedback({ kind: 'not_found' });
+            playBeep('error');
+          } else {
+            setFeedback({ kind: 'invalid_status' });
+            playBeep('warn');
+          }
+        }
       } else {
         consecutiveFailRef.current = 0;
         setIsOffline(false);
@@ -422,6 +530,55 @@ export default function PortariaPage() {
     };
   }, []);
 
+  useEffect(() => {
+    async function syncPending() {
+      const local = stateRef.current;
+      const eventId = eventIdRef.current;
+      if (!local || !eventId || local.pending.length === 0) return;
+      if (syncingRef.current) return;
+      syncingRef.current = true;
+      try {
+        const res = await customInstance<{
+          data: {
+            results: Array<{
+              ticketId: string;
+              ok: boolean;
+              reason?: string;
+              usedAt?: string;
+            }>;
+          };
+        }>('/api/v1/producer/tickets/validate-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ eventId, items: local.pending }),
+        });
+        const conflicts = res.data.results.filter(
+          (r) => !r.ok && r.reason === 'ALREADY_USED',
+        ).length;
+        if (conflicts > 0) setConflictCount((c) => c + conflicts);
+        const next = { ...local, pending: [] };
+        stateRef.current = next;
+        void saveState(slug, next);
+        setPendingCount(0);
+        setIsOffline(false);
+        void refetchEvent();
+      } catch {
+        // continua offline; próxima janela tenta de novo
+      } finally {
+        syncingRef.current = false;
+      }
+    }
+
+    const onOnline = () => void syncPending();
+    window.addEventListener('online', onOnline);
+    const interval = setInterval(() => void syncPending(), 30_000);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
+
   return (
     <RoleGate allow={['PRODUCER', 'ADMIN']}>
       {() => (
@@ -440,6 +597,21 @@ export default function PortariaPage() {
               {isOffline && (
                 <span className="flex items-center gap-1 font-mono text-xs text-orange-400 animate-pulse">
                   <WifiOff className="w-3 h-3" /> offline
+                </span>
+              )}
+              {pendingCount > 0 && (
+                <span className="font-mono text-xs text-yellow-400">
+                  {pendingCount} offline p/ sincronizar
+                </span>
+              )}
+              {conflictCount > 0 && (
+                <span className="font-mono text-xs text-red-400">
+                  {conflictCount} conflito{conflictCount > 1 ? 's' : ''} (validado 2x)
+                </span>
+              )}
+              {offlineReady && (
+                <span className="font-mono text-[10px] text-muted-foreground uppercase">
+                  modo offline pronto
                 </span>
               )}
               <span className="font-mono text-sm text-accent font-medium">
