@@ -7,6 +7,7 @@ import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
 import { Button } from '@/components/ui/button';
 import { RequireAuth } from '@/components/require-auth';
+import { ChangePasswordSection } from '@/components/change-password-section';
 import {
   useMeControllerProfile,
   useMeControllerOrders,
@@ -109,6 +110,9 @@ function ProfileContent() {
             <DataRow label="CPF" value={cpfMasked} mono />
             <DataRow label="Telefone" value={phoneMasked} mono />
           </Section>
+
+          {/* Password */}
+          <ChangePasswordSection hasPassword={profile.hasPassword} />
 
           {/* Referral */}
           <Section title="Indique e ganhe">

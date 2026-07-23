@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { isAxiosError } from 'axios';
 import { AuthShell } from '@/components/auth-shell';
@@ -130,6 +131,13 @@ export default function EntrarPage() {
             disabled={loading}
           />
         </Field>
+
+        <Link
+          href="/auth/esqueci-senha"
+          className="text-[12px] text-ink-muted hover:text-accent transition-colors self-end -mt-2 underline underline-offset-2"
+        >
+          Esqueci minha senha
+        </Link>
 
         {error ? (
           <div className="border-l-2 border-destructive bg-destructive/10 px-3 py-2 text-[13px] text-foreground">
